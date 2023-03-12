@@ -1,6 +1,7 @@
 build/
 lib/
 bin/
+examples/modules
 
 
 *.bin

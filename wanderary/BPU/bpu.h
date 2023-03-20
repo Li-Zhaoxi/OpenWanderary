@@ -1,5 +1,5 @@
-#ifndef BPU_HPP_
-#define BPU_HPP_
+#ifndef WDR_BPU_HPP_
+#define WDR_BPU_HPP_
 
 
 #include <iostream>
@@ -63,20 +63,10 @@ void showhbDNNDataType(const hbDNNDataType &c1);
 void showhbDNNTensorProperties(const hbDNNTensorProperties &c1);
 
 
-// Pre-processing functions
-
-// 根据Tensor的属性，自动将输入的BGR图像，转为目标Tensor
-// 目标Tensor属性仅支持BGR/RGB, HWC/CHW, NV12由于存在通道错误问题不增加相应的转换
-void cvtImage2Tensor(const cv::Mat &img, hbDNNTensor &tensor);
-
-
-
 // Post-processing functions
 
 
-// 适用于二分类分割结果，后续有多分类需求，考虑优化这个函数或者改进这个函数
-// 1x2xhxw->hxw
-void parseBinarySegmentResult(const hbDNNTensor &tensor, cv::Mat &pred);
+
 
 
 } // end BPU

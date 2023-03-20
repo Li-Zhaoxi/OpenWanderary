@@ -35,7 +35,7 @@ void chw_to_hwc(cv::InputArray src, cv::OutputArray dst)
   cv::transpose(c_hw, dst_1d);                                                  
 }
 
-void makeContinuous(cv::Mat &src, cv::Mat &dst)
+void makeContinuous(const cv::Mat &src, cv::Mat &dst)
 {
   if (!src.isContinuous())
     src.copyTo(dst);

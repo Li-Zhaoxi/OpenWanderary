@@ -4,4 +4,5 @@ include_directories(
 )
 
 add_subdirectory(Core)
+add_subdirectory(DNN)
 add_subdirectory(BPU)

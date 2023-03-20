@@ -1,5 +1,5 @@
 #include <BPU/bpu.h>
-
+#include <Core/core.h>
 
 namespace wdr
 {
@@ -121,10 +121,85 @@ void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize)
 
 void bpuMemcpy(const cv::Mat &src, hbDNNTensor &dst)
 {
+  // src cv::Mat size;
+  int cvmemsize = src.total() * src.elemSize();
   // dst tensor infos
   auto &property = dst.properties;
+  auto &validShape = property.validShape;
   auto &alignedShape = property.alignedShape;
   int alignedByteSize = property.alignedByteSize;
+
+  std::cout << "cvmemsize: " << cvmemsize << std::endl;
+  std::cout << "alignedByteSize: " << alignedByteSize << std::endl;
+  CV_Assert(cvmemsize <= alignedByteSize);
+  cv::Mat copyMat;
+
+  if (src.rows == -1 && src.cols == -1 && src.channels() == 1)
+  {
+    std::cout << "1 " << std::endl;
+    if (validShape.dimensionSize[0] == 1 && (src.size.dims() + 1 == validShape.numDimensions))
+    {
+      std::cout << "1.1 " << std::endl;
+      for(int k = 1; k < validShape.numDimensions; k++)
+      {
+        if (src.size[k - 1] != validShape.dimensionSize[k])
+        {
+          CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
+        }
+      }
+    }
+    else
+    {
+      std::cout << "1.2 " << std::endl;
+      CV_Assert(src.size.dims() == validShape.numDimensions);
+      for(int k = 0; k < validShape.numDimensions; k++)
+      {
+        if (src.size[k] != validShape.dimensionSize[k])
+        {
+          CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
+        }
+      }
+    }
+    CV_Assert(src.size.dims() == validShape.numDimensions);
+    makeContinuous(src, copyMat);
+    bpuMemcpy(dst, src.data, cvmemsize);
+  }
+  else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NHWC)
+  {
+    std::cout << "2 " << std::endl;
+    CV_Assert(validShape.numDimensions == 4);
+    CV_Assert(validShape.dimensionSize[0] == 1 && 
+              validShape.dimensionSize[1] == src.rows && 
+              validShape.dimensionSize[2] == src.cols &&
+              validShape.dimensionSize[3] == src.channels());
+    makeContinuous(src, copyMat);
+    // cv::imwrite("copyMat.png", copyMat);
+    std::cout << "start cvmemsize: " << cvmemsize << std::endl;
+    // bpuMemcpy(dst, copyMat.data, cvmemsize);
+
+    auto data = dst.sysMem[0].virAddr;
+    memcpy(data, copyMat.data, cvmemsize);
+    HB_CHECK_SUCCESS(hbSysFlushMem(&(dst.sysMem[0]), HB_SYS_MEM_CACHE_CLEAN),
+          "hbSysFlushMem cpu->tensor failed");
+
+  }
+  else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NCHW)
+  {
+    std::cout << "3 " << std::endl;
+    CV_Assert(validShape.numDimensions == 4);
+    CV_Assert(validShape.dimensionSize[0] == 1 && 
+              validShape.dimensionSize[2] == src.rows && 
+              validShape.dimensionSize[3] == src.cols &&
+              validShape.dimensionSize[1] == src.channels());
+    cv::Mat chw;
+    hwc_to_chw(src, chw);
+    makeContinuous(chw, copyMat);
+    bpuMemcpy(dst, copyMat.data, cvmemsize);
+  }
+  else
+  {
+    CV_Error(cv::Error::StsBadArg, "Bad Input src");
+  }
 
 }
 
@@ -156,6 +231,7 @@ void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst)
       dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16U, 1));
       break;
     case HB_DNN_TENSOR_TYPE_F32:
+      std::cout << "Float" << std::endl;
       dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32F, 1));
       break;
     case HB_DNN_TENSOR_TYPE_S32:
@@ -170,6 +246,8 @@ void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst)
       std::abort();
       break;
   }
+
+  std::cout << "out dim: " << dst.size << std::endl;
 
   // copy date
   int dstmemsize = dst.total() * dst.elemSize();

@@ -6,36 +6,48 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF()
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Check C++11 or C++0x support
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX11)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-   add_definitions(-DCOMPILEDWITHC11)
-   message(STATUS "Using flag -std=c++11.")
-elseif(COMPILER_SUPPORTS_CXX0X)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-   add_definitions(-DCOMPILEDWITHC0X)
-   message(STATUS "Using flag -std=c++0x.")
-else()
-   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-endif()
+set (CMAKE_CXX_STANDARD 17)
+# # Check C++11 or C++0x support
+# include(CheckCXXCompilerFlag)
+# CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+# CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+# if(COMPILER_SUPPORTS_CXX11)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#    add_definitions(-DCOMPILEDWITHC11)
+#    message(STATUS "Using flag -std=c++11.")
+# elseif(COMPILER_SUPPORTS_CXX0X)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#    add_definitions(-DCOMPILEDWITHC0X)
+#    message(STATUS "Using flag -std=c++0x.")
+# else()
+#    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+# endif()
 
 find_package(gflags REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Boost 1.71.0 REQUIRED)
 
 MESSAGE("OPENCV VERSION: ${OpenCV_VERSION}")
 
-
+ 
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 message("OPENCV Lib path: ${OpenCV_LIBRARY_DIRS}")
 link_directories(
   ${OpenCV_LIBRARY_DIRS}
+  ${Boost_LIBRARY_DIRS}
 )
+
+MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
+
+MESSAGE( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
+
+MESSAGE( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
+
+add_subdirectory(3rdparty)
 
 add_subdirectory(wanderary)
 add_subdirectory(examples)

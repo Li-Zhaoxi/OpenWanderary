@@ -4,385 +4,345 @@
 namespace wdr
 {
 
-namespace BPU
-{
-void readNets(const std::vector<std::string> &modelpaths, 
-              hbPackedDNNHandle_t &pPackedNets,
-              std::unordered_map<std::string, hbDNNHandle_t> &netsMap)
-{
-  // Init Bin Models from files
-  CV_Assert(pPackedNets == nullptr);
+  namespace BPU
   {
-    const int pathnum = modelpaths.size();
-    const char **cpaths = new const char*[pathnum];
-    for(int k = 0; k < pathnum; k++)
-      cpaths[k] = modelpaths[k].c_str();
-    HB_CHECK_SUCCESS(hbDNNInitializeFromFiles(&pPackedNets, cpaths, pathnum),
-      "hbDNNInitializeFromFiles failed");
-    delete[] cpaths;
-  }
 
-  // Get All model handles
-  netsMap.clear();
-  {
-    const char **model_name_list;
-    int model_count = 0;
-    HB_CHECK_SUCCESS(hbDNNGetModelNameList(&model_name_list, &model_count, pPackedNets),
-      "hbDNNGetModelNameList failed");
-    LOG(INFO) << "Input model num: " << model_count << ", Parse model num: " << model_count;
-
-    // Fetch all model handles
-    for(int i = 0; i < model_count;i++)
+    void createTensors(const std::vector<hbDNNTensorProperties> &properties, std::vector<hbDNNTensor> &tensors, bool autopadding)
     {
-      hbDNNHandle_t tmp;
-      const std::string modelname(model_name_list[i]);
-      LOG(INFO) << "Fetching the handle of \"" << modelname << "\"";
-      HB_CHECK_SUCCESS(hbDNNGetModelHandle(&tmp, pPackedNets, modelname.c_str()),
-        "hbDNNGetModelHandle failed");
-      netsMap.insert(std::make_pair(modelname, tmp));
-    }
-  }
-}
-
-void readNetProperties(const hbDNNHandle_t dnn_handle, std::vector<hbDNNTensorProperties> &properties, bool input)
-{
-  int tensornum = 0;
-  if (input)
-  {
-    HB_CHECK_SUCCESS(hbDNNGetInputCount(&tensornum, dnn_handle), "hbDNNGetInputCount failed");
-    LOG(INFO) << "input tensortnum: " << tensornum;
-  }
-  else
-  {
-    HB_CHECK_SUCCESS(hbDNNGetOutputCount(&tensornum, dnn_handle), "hbDNNGetOutputCount failed");
-    LOG(INFO) << "output tensortnum: " << tensornum;
-  }
-
-  properties.resize(tensornum);
-
-  for(int i = 0; i < tensornum; i++)
-  {
-    auto &usage_property = properties[i];
-    if (input)
-    {
-      HB_CHECK_SUCCESS(hbDNNGetInputTensorProperties(&usage_property, dnn_handle, i),
-        "hbDNNGetInputTensorProperties failed");
-    }
-    else
-    {
-      HB_CHECK_SUCCESS(hbDNNGetOutputTensorProperties(&usage_property, dnn_handle, i),
-        "hbDNNGetOutputTensorProperties failed");
-    }
-  }
-}
-
-void createTensors(const std::vector<hbDNNTensorProperties> &properties, std::vector<hbDNNTensor> &tensors)
-{
-  const int tensornum = properties.size();
-  tensors.resize(tensornum);
-  for(int i = 0; i < tensornum; i++)
-  {
-    auto &usage_tensor = tensors[i];
-    usage_tensor.properties = properties[i];
-
-    int memSize = usage_tensor.properties.alignedByteSize;
-    HB_CHECK_SUCCESS(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
-  }
-}
-
-void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize)
-{
-  int memSize = dst.properties.alignedByteSize;
-  if (memsize < 0)
-    memsize = memSize;
-  else
-    CV_Assert(memSize >= memsize);
-  auto data = dst.sysMem[0].virAddr;
-
-	memcpy(reinterpret_cast<uint8_t *>(data), src, memsize);
-	HB_CHECK_SUCCESS(hbSysFlushMem(&dst.sysMem[0], HB_SYS_MEM_CACHE_CLEAN),
-        "hbSysFlushMem cpu->tensor failed");
-}
-
-void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize)
-{
-  int memSize = src.properties.alignedByteSize;
-  if (memsize < 0)
-    memsize = memSize;
-  else
-    CV_Assert(memSize >= memsize);
-
-  HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
-        "hbSysFlushMem tensor->cpu failed");
-  
-  auto data = src.sysMem[0].virAddr;
-  memcpy(dst, reinterpret_cast<uint8_t *>(data), memsize);
-}
-
-void bpuMemcpy(const cv::Mat &src, hbDNNTensor &dst)
-{
-  // src cv::Mat size;
-  int cvmemsize = src.total() * src.elemSize();
-  // dst tensor infos
-  auto &property = dst.properties;
-  auto &validShape = property.validShape;
-  auto &alignedShape = property.alignedShape;
-  int alignedByteSize = property.alignedByteSize;
-
-  std::cout << "cvmemsize: " << cvmemsize << std::endl;
-  std::cout << "alignedByteSize: " << alignedByteSize << std::endl;
-  CV_Assert(cvmemsize <= alignedByteSize);
-  cv::Mat copyMat;
-
-  if (src.rows == -1 && src.cols == -1 && src.channels() == 1)
-  {
-    std::cout << "1 " << std::endl;
-    if (validShape.dimensionSize[0] == 1 && (src.size.dims() + 1 == validShape.numDimensions))
-    {
-      std::cout << "1.1 " << std::endl;
-      for(int k = 1; k < validShape.numDimensions; k++)
+      const int tensornum = properties.size();
+      tensors.resize(tensornum);
+      for (int i = 0; i < tensornum; i++)
       {
-        if (src.size[k - 1] != validShape.dimensionSize[k])
-        {
-          CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
-        }
+        auto &usage_tensor = tensors[i];
+        usage_tensor.properties = properties[i];
+
+        int memSize = usage_tensor.properties.alignedByteSize;
+        HB_CHECK_SUCCESS(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
+
+        if (autopadding)
+          usage_tensor.properties.alignedShape = usage_tensor.properties.validShape;
       }
     }
-    else
+
+    void createTensors(const hbDNNTensorProperties &property, hbDNNTensor &bputensor)
     {
-      std::cout << "1.2 " << std::endl;
-      CV_Assert(src.size.dims() == validShape.numDimensions);
-      for(int k = 0; k < validShape.numDimensions; k++)
+      bputensor.properties = property;
+      int memSize = bputensor.properties.alignedByteSize;
+      HB_CHECK_SUCCESS(hbSysAllocCachedMem(&bputensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
+    }
+
+    void createTensors(const hbDNNHandle_t dnn_handle, std::vector<hbDNNTensor> &tensors, bool input, bool autopadding)
+    {
+      int tensornum = 0;
+      if (input)
       {
-        if (src.size[k] != validShape.dimensionSize[k])
+        HB_CHECK_SUCCESS(hbDNNGetInputCount(&tensornum, dnn_handle), "hbDNNGetInputCount failed");
+        LOG(INFO) << "input tensortnum: " << tensornum;
+      }
+      else
+      {
+        HB_CHECK_SUCCESS(hbDNNGetOutputCount(&tensornum, dnn_handle), "hbDNNGetOutputCount failed");
+        LOG(INFO) << "output tensortnum: " << tensornum;
+      }
+
+      tensors.resize(tensornum);
+      for (int i = 0; i < tensornum; i++)
+      {
+        auto &usage_tensor = tensors[i];
+
+        if (input)
         {
-          CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
+          HB_CHECK_SUCCESS(hbDNNGetInputTensorProperties(&usage_tensor.properties, dnn_handle, i),
+                           "hbDNNGetInputTensorProperties failed");
         }
+        else
+        {
+          HB_CHECK_SUCCESS(hbDNNGetOutputTensorProperties(&usage_tensor.properties, dnn_handle, i),
+                           "hbDNNGetOutputTensorProperties failed");
+        }
+
+        int memSize = usage_tensor.properties.alignedByteSize;
+        HB_CHECK_SUCCESS(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
+
+        if (autopadding)
+          usage_tensor.properties.alignedShape = usage_tensor.properties.validShape;
       }
     }
-    CV_Assert(src.size.dims() == validShape.numDimensions);
-    makeContinuous(src, copyMat);
-    bpuMemcpy(dst, src.data, cvmemsize);
-  }
-  else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NHWC)
-  {
-    std::cout << "2 " << std::endl;
-    CV_Assert(validShape.numDimensions == 4);
-    CV_Assert(validShape.dimensionSize[0] == 1 && 
-              validShape.dimensionSize[1] == src.rows && 
-              validShape.dimensionSize[2] == src.cols &&
-              validShape.dimensionSize[3] == src.channels());
-    makeContinuous(src, copyMat);
-    // cv::imwrite("copyMat.png", copyMat);
-    std::cout << "start cvmemsize: " << cvmemsize << std::endl;
-    // bpuMemcpy(dst, copyMat.data, cvmemsize);
 
-    auto data = dst.sysMem[0].virAddr;
-    memcpy(data, copyMat.data, cvmemsize);
-    HB_CHECK_SUCCESS(hbSysFlushMem(&(dst.sysMem[0]), HB_SYS_MEM_CACHE_CLEAN),
-          "hbSysFlushMem cpu->tensor failed");
+    void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize)
+    {
+      int memSize = dst.properties.alignedByteSize;
+      if (memsize < 0)
+        memsize = memSize;
+      else
+        CV_Assert(memSize >= memsize);
+      auto data = dst.sysMem[0].virAddr;
 
-  }
-  else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NCHW)
-  {
-    std::cout << "3 " << std::endl;
-    CV_Assert(validShape.numDimensions == 4);
-    CV_Assert(validShape.dimensionSize[0] == 1 && 
-              validShape.dimensionSize[2] == src.rows && 
-              validShape.dimensionSize[3] == src.cols &&
-              validShape.dimensionSize[1] == src.channels());
-    cv::Mat chw;
-    hwc_to_chw(src, chw);
-    makeContinuous(chw, copyMat);
-    bpuMemcpy(dst, copyMat.data, cvmemsize);
-  }
-  else
-  {
-    CV_Error(cv::Error::StsBadArg, "Bad Input src");
-  }
+      memcpy(reinterpret_cast<uint8_t *>(data), src, memsize);
+      HB_CHECK_SUCCESS(hbSysFlushMem(&dst.sysMem[0], HB_SYS_MEM_CACHE_CLEAN),
+                       "hbSysFlushMem cpu->tensor failed");
+    }
 
-}
+    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize)
+    {
+      int memSize = src.properties.alignedByteSize;
+      if (memsize < 0)
+        memsize = memSize;
+      else
+        CV_Assert(memSize >= memsize);
 
-void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst)
-{
-  HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
-        "hbSysFlushMem tensor->cpu failed");
-  
-  auto &property = src.properties;
-  auto &alignedShape = property.alignedShape;
-  int alignedByteSize = property.alignedByteSize;
+      HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
+                       "hbSysFlushMem tensor->cpu failed");
 
-  // allocate data
-  std::vector<int> dims(alignedShape.numDimensions);
-  for(int k = 0; k < alignedShape.numDimensions; k++)
-    dims[k] = alignedShape.dimensionSize[k];
-  switch(property.tensorType)
-  {
-    case HB_DNN_TENSOR_TYPE_S8:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8S, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_U8:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8U, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_S16:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16S, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_U16:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16U, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_F32:
-      std::cout << "Float" << std::endl;
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32F, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_S32:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32S, 1));
-      break;
-    case HB_DNN_TENSOR_TYPE_F64:
-      dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_64F, 1));
-      break;
-    default:
-      LOG(ERROR) << "Unsupport type: ";
-      showhbDNNDataType(hbDNNDataType(property.tensorType));
-      std::abort();
-      break;
-  }
+      auto data = src.sysMem[0].virAddr;
+      memcpy(dst, reinterpret_cast<uint8_t *>(data), memsize);
+    }
 
-  std::cout << "out dim: " << dst.size << std::endl;
+    void bpuMemcpy(const cv::Mat &src, hbDNNTensor &dst)
+    {
+      // src cv::Mat size;
+      int cvmemsize = src.total() * src.elemSize();
+      // dst tensor infos
+      auto &property = dst.properties;
+      auto &validShape = property.validShape;
+      auto &alignedShape = property.alignedShape;
+      int alignedByteSize = property.alignedByteSize;
 
-  // copy date
-  int dstmemsize = dst.total() * dst.elemSize();
-  CV_Assert(dstmemsize == alignedByteSize);
+      std::cout << "cvmemsize: " << cvmemsize << std::endl;
+      std::cout << "alignedByteSize: " << alignedByteSize << std::endl;
+      CV_Assert(cvmemsize <= alignedByteSize);
+      cv::Mat copyMat;
 
-  memcpy(reinterpret_cast<uint8_t *>(dst.data),
-         reinterpret_cast<uint8_t *>(src.sysMem[0].virAddr),
-         dstmemsize);
-}
+      if (src.rows == -1 && src.cols == -1 && src.channels() == 1)
+      {
+        std::cout << "1 " << std::endl;
+        if (validShape.dimensionSize[0] == 1 && (src.size.dims() + 1 == validShape.numDimensions))
+        {
+          std::cout << "1.1 " << std::endl;
+          for (int k = 1; k < validShape.numDimensions; k++)
+          {
+            if (src.size[k - 1] != validShape.dimensionSize[k])
+            {
+              CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
+            }
+          }
+        }
+        else
+        {
+          std::cout << "1.2 " << std::endl;
+          CV_Assert(src.size.dims() == validShape.numDimensions);
+          for (int k = 0; k < validShape.numDimensions; k++)
+          {
+            if (src.size[k] != validShape.dimensionSize[k])
+            {
+              CV_Error(cv::Error::StsBadSize, "invalid size at " + std::to_string(k) + " dim. Src dim: " + std::to_string(src.size[k]) + ", dst dim: " + std::to_string(validShape.dimensionSize[k]));
+            }
+          }
+        }
+        CV_Assert(src.size.dims() == validShape.numDimensions);
+        makeContinuous(src, copyMat);
+        bpuMemcpy(dst, src.data, cvmemsize);
+      }
+      else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NHWC)
+      {
+        std::cout << "2 " << std::endl;
+        CV_Assert(validShape.numDimensions == 4);
+        CV_Assert(validShape.dimensionSize[0] == 1 &&
+                  validShape.dimensionSize[1] == src.rows &&
+                  validShape.dimensionSize[2] == src.cols &&
+                  validShape.dimensionSize[3] == src.channels());
+        makeContinuous(src, copyMat);
+        // cv::imwrite("copyMat.png", copyMat);
+        std::cout << "start cvmemsize: " << cvmemsize << std::endl;
+        // bpuMemcpy(dst, copyMat.data, cvmemsize);
 
-void releaseNets(hbPackedDNNHandle_t &pPackedNets)
-{
-  HB_CHECK_SUCCESS(hbDNNRelease(pPackedNets), "hbDNNRelease tensor->cpu failed");
-  pPackedNets = nullptr;
-}
+        auto data = dst.sysMem[0].virAddr;
+        memcpy(data, copyMat.data, cvmemsize);
+        HB_CHECK_SUCCESS(hbSysFlushMem(&(dst.sysMem[0]), HB_SYS_MEM_CACHE_CLEAN),
+                         "hbSysFlushMem cpu->tensor failed");
+      }
+      else if (src.rows > 0 && src.cols > 0 && property.tensorLayout == HB_DNN_LAYOUT_NCHW)
+      {
+        std::cout << "3 " << std::endl;
+        CV_Assert(validShape.numDimensions == 4);
+        CV_Assert(validShape.dimensionSize[0] == 1 &&
+                  validShape.dimensionSize[2] == src.rows &&
+                  validShape.dimensionSize[3] == src.cols &&
+                  validShape.dimensionSize[1] == src.channels());
+        cv::Mat chw;
+        hwc_to_chw(src, chw);
+        makeContinuous(chw, copyMat);
+        bpuMemcpy(dst, copyMat.data, cvmemsize);
+      }
+      else
+      {
+        CV_Error(cv::Error::StsBadArg, "Bad Input src");
+      }
+    }
 
-void releaseTensors(std::vector<hbDNNTensor> &tensors)
-{
-  for(int i = 0; i < tensors.size(); i++)
-  {
-    HB_CHECK_SUCCESS(hbSysFreeMem(&(tensors[i].sysMem[0])), 
-          "hbDNNRelease tensor->cpu failed");
-  }
-}
+    void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst)
+    {
+      HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
+                       "hbSysFlushMem tensor->cpu failed");
 
-void forward(const hbDNNHandle_t dnn_handle, const std::vector<hbDNNTensor> &inTensors, std::vector<hbDNNTensor> &outTensors, int waiting_time)
-{
-  hbDNNInferCtrlParam infer_ctrl_param;
-	hbDNNTaskHandle_t task_handle = nullptr;
-	HB_DNN_INITIALIZE_INFER_CTRL_PARAM(&infer_ctrl_param);
-	
-	auto _poutput_tensors = outTensors.data();
-	HB_CHECK_SUCCESS(hbDNNInfer(&task_handle, &_poutput_tensors, inTensors.data(),
-                              dnn_handle, &infer_ctrl_param), "hbDNNInfer failed");
+      auto &property = src.properties;
+      auto &alignedShape = property.alignedShape;
+      int alignedByteSize = property.alignedByteSize;
 
-	// wait task done
-	HB_CHECK_SUCCESS(hbDNNWaitTaskDone(task_handle, waiting_time), "hbDNNWaitTaskDone failed");
-	
-	// release task handle
-	HB_CHECK_SUCCESS(hbDNNReleaseTask(task_handle), "hbDNNReleaseTask failed");
-}
+      // allocate data
+      std::vector<int> dims(alignedShape.numDimensions);
+      for (int k = 0; k < alignedShape.numDimensions; k++)
+        dims[k] = alignedShape.dimensionSize[k];
+      switch (property.tensorType)
+      {
+      case HB_DNN_TENSOR_TYPE_S8:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8S, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_U8:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8U, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_S16:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16S, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_U16:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16U, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_F32:
+        std::cout << "Float" << std::endl;
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32F, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_S32:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32S, 1));
+        break;
+      case HB_DNN_TENSOR_TYPE_F64:
+        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_64F, 1));
+        break;
+      default:
+        CV_Error(cv::Error::StsAssert, "Unsupport type: " + formathbDNNDataType(hbDNNDataType(property.tensorType)));
+        break;
+      }
 
-} // end BPU
+      std::cout << "out dim: " << dst.size << std::endl;
 
+      // copy date
+      int dstmemsize = dst.total() * dst.elemSize();
+      CV_Assert(dstmemsize == alignedByteSize);
 
-// BPUModels::BPUModels(const std::vector<std::string> &model_paths)
-// {
-//   // Init Bin Models from files
-//   {
-//     const int pathnum = model_paths.size();
-//     char **cpaths = new char*[pathnum];
-//     for(int k = 0; k < pathnum; k++)
-//       cpaths[k] = model_paths[k].c_str();
-//     HB_CHECK_SUCCESS(hbDNNInitializeFromFiles(&packed_dnn_handle, cpaths, pathnum),
-//       "hbDNNInitializeFromFiles failed");
-//     delete[] cpaths;
-//   }
+      memcpy(reinterpret_cast<uint8_t *>(dst.data),
+             reinterpret_cast<uint8_t *>(src.sysMem[0].virAddr),
+             dstmemsize);
+    }
 
-  
-  
-
-//   const char **model_name_list;
-//   int model_count = 0;
-//   HB_CHECK_SUCCESS(hbDNNGetModelNameList(&model_name_list, &model_count, packed_dnn_handle),
-//     "hbDNNGetModelNameList failed");
-//   LOG(INFO) << "Input model num: " << model_num << ", Parse model num: " << model_count;
-  
-//   // Fetch all model handles
-//   for(int i = 0; i < model_count;i++)
-//   {
-//     hbDNNHandle_t tmp;
-//     HB_CHECK_SUCCESS(hbDNNGetModelHandle(&dnn_handle, packed_dnn_handle, model_name_list[i]),
-//       "hbDNNGetModelHandle failed");
+    void releaseTensors(std::vector<hbDNNTensor> &tensors)
+    {
+      for (int i = 0; i < tensors.size(); i++)
+      {
+        HB_CHECK_SUCCESS(hbSysFreeMem(&(tensors[i].sysMem[0])),
+                         "hbDNNRelease tensor->cpu failed");
+      }
+    }
     
-//     LOG(INFO) << "Finish fetching the handle of " << std::string(model_name_list[i]);
-//     dnn_handles.push_back(tmp);
-//   }
-  
-//   // Prepare Input && Output Tensors
-//   all_intensor.resize(model_count), all_outtensor.resize(model_count);
+    void forward(const hbDNNHandle_t dnn_handle, const hbDNNTensor* _inTensors, hbDNNTensor* _outTensors, int waiting_time)
+    {
+      hbDNNInferCtrlParam infer_ctrl_param;
+      hbDNNTaskHandle_t task_handle = nullptr;
+      HB_DNN_INITIALIZE_INFER_CTRL_PARAM(&infer_ctrl_param);
 
+      HB_CHECK_SUCCESS(hbDNNInfer(&task_handle, &_outTensors, _inTensors,
+                                  dnn_handle, &infer_ctrl_param),
+                       "hbDNNInfer failed");
 
-  
-//   // BPUModule::prepareInputOutputTensor(dnn_handle, this->input_tensors, true);
-//   // BPUModule::prepareInputOutputTensor(dnn_handle, this->output_tensors, false);
-// }	
+      // wait task done
+      HB_CHECK_SUCCESS(hbDNNWaitTaskDone(task_handle, waiting_time), "hbDNNWaitTaskDone failed");
 
+      // release task handle
+      HB_CHECK_SUCCESS(hbDNNReleaseTask(task_handle), "hbDNNReleaseTask failed");
+    }
 
+    void forward(const hbDNNHandle_t dnn_handle, const std::vector<hbDNNTensor> &inTensors, std::vector<hbDNNTensor> &outTensors, int waiting_time)
+    {
+      forward(dnn_handle, inTensors.data(), outTensors.data(), waiting_time);
+    }
 
-// void BPUModule::prepareInputOutputTensor(const hbDNNHandle_t &dnn_handle, std::vector<hbDNNTensor> &tensors, bool input)
-// {
-//   int tensornum = 0;
-//   if (input)
-//   {
-//     HB_CHECK_SUCCESS(hbDNNGetInputCount(&tensornum, dnn_handle), "hbDNNGetInputCount failed");
-//     LOG(INFO) << "input tensortnum: " << tensornum;
-//   }
-//   else
-//   {
-//     HB_CHECK_SUCCESS(hbDNNGetOutputCount(&tensornum, dnn_handle), "hbDNNGetOutputCount failed");
-//     LOG(INFO) << "output tensortnum: " << tensornum;
-//   }
+  } // end BPU
 
-//   tensors.resize(tensornum);
+  // BPUModels::BPUModels(const std::vector<std::string> &model_paths)
+  // {
+  //   // Init Bin Models from files
+  //   {
+  //     const int pathnum = model_paths.size();
+  //     char **cpaths = new char*[pathnum];
+  //     for(int k = 0; k < pathnum; k++)
+  //       cpaths[k] = model_paths[k].c_str();
+  //     HB_CHECK_SUCCESS(hbDNNInitializeFromFiles(&packed_dnn_handle, cpaths, pathnum),
+  //       "hbDNNInitializeFromFiles failed");
+  //     delete[] cpaths;
+  //   }
 
-//   for(int i = 0; i < tensornum; i++)
-//   {
-//     auto &usage_tensor = tensors[i];
-//     if (input)
-//     {
-//       HB_CHECK_SUCCESS(hbDNNGetInputTensorProperties(&usage_tensor.properties, dnn_handle, i),
-//         "hbDNNGetInputTensorProperties failed");
-//       // std::cout << "input_tensors: " << std::endl;
-//       // BPUModule::showhbDNNTensorProperties(usage_tensor.properties);
-//     }
-//     else
-//     {
-//       HB_CHECK_SUCCESS(hbDNNGetOutputTensorProperties(&usage_tensor.properties, dnn_handle, i),
-//         "hbDNNGetOutputTensorProperties failed");
-//       // std::cout << "output_tensors: " << std::endl;
-//       // BPUModule::showhbDNNTensorProperties(usage_tensor.properties);
-//     }
+  //   const char **model_name_list;
+  //   int model_count = 0;
+  //   HB_CHECK_SUCCESS(hbDNNGetModelNameList(&model_name_list, &model_count, packed_dnn_handle),
+  //     "hbDNNGetModelNameList failed");
+  //   LOG(INFO) << "Input model num: " << model_num << ", Parse model num: " << model_count;
 
-//     auto &usage_properties = usage_tensor.properties;
+  //   // Fetch all model handles
+  //   for(int i = 0; i < model_count;i++)
+  //   {
+  //     hbDNNHandle_t tmp;
+  //     HB_CHECK_SUCCESS(hbDNNGetModelHandle(&dnn_handle, packed_dnn_handle, model_name_list[i]),
+  //       "hbDNNGetModelHandle failed");
 
-//     int memSize = usage_properties.alignedByteSize;
-//     HB_CHECK_SUCCESS(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
-//   }
+  //     LOG(INFO) << "Finish fetching the handle of " << std::string(model_name_list[i]);
+  //     dnn_handles.push_back(tmp);
+  //   }
 
-// }
+  //   // Prepare Input && Output Tensors
+  //   all_intensor.resize(model_count), all_outtensor.resize(model_count);
 
+  //   // BPUModule::prepareInputOutputTensor(dnn_handle, this->input_tensors, true);
+  //   // BPUModule::prepareInputOutputTensor(dnn_handle, this->output_tensors, false);
+  // }
 
+  // void BPUModule::prepareInputOutputTensor(const hbDNNHandle_t &dnn_handle, std::vector<hbDNNTensor> &tensors, bool input)
+  // {
+  //   int tensornum = 0;
+  //   if (input)
+  //   {
+  //     HB_CHECK_SUCCESS(hbDNNGetInputCount(&tensornum, dnn_handle), "hbDNNGetInputCount failed");
+  //     LOG(INFO) << "input tensortnum: " << tensornum;
+  //   }
+  //   else
+  //   {
+  //     HB_CHECK_SUCCESS(hbDNNGetOutputCount(&tensornum, dnn_handle), "hbDNNGetOutputCount failed");
+  //     LOG(INFO) << "output tensortnum: " << tensornum;
+  //   }
 
+  //   tensors.resize(tensornum);
 
+  //   for(int i = 0; i < tensornum; i++)
+  //   {
+  //     auto &usage_tensor = tensors[i];
+  //     if (input)
+  //     {
+  //       HB_CHECK_SUCCESS(hbDNNGetInputTensorProperties(&usage_tensor.properties, dnn_handle, i),
+  //         "hbDNNGetInputTensorProperties failed");
+  //       // std::cout << "input_tensors: " << std::endl;
+  //       // BPUModule::showhbDNNTensorProperties(usage_tensor.properties);
+  //     }
+  //     else
+  //     {
+  //       HB_CHECK_SUCCESS(hbDNNGetOutputTensorProperties(&usage_tensor.properties, dnn_handle, i),
+  //         "hbDNNGetOutputTensorProperties failed");
+  //       // std::cout << "output_tensors: " << std::endl;
+  //       // BPUModule::showhbDNNTensorProperties(usage_tensor.properties);
+  //     }
 
+  //     auto &usage_properties = usage_tensor.properties;
 
+  //     int memSize = usage_properties.alignedByteSize;
+  //     HB_CHECK_SUCCESS(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), "hbSysAllocCachedMem failed");
+  //   }
+
+  // }
 
 } // end wdr

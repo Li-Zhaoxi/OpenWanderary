@@ -24,8 +24,7 @@ void cvtImage2Tensor(const cv::Mat &img, hbDNNTensor &tensor)
       img.copyTo(usage_img);
       break;
     default:
-      LOG(ERROR) << "Unsupport type: ";
-      showhbDNNDataType(hbDNNDataType(tensor_property.tensorType));
+      CV_Error(cv::Error::StsAssert, "Unsupport type: " + formathbDNNDataType(hbDNNDataType(tensor_property.tensorType)));
       std::abort();
       break;
   }
@@ -40,8 +39,7 @@ void cvtImage2Tensor(const cv::Mat &img, hbDNNTensor &tensor)
       hwc_to_chw(usage_img, dstlayoutmat);
       break;
     default:
-      LOG(ERROR) << "Unsupport type: ";
-      showhbDNNTensorLayout(hbDNNTensorLayout(tensor_property.tensorLayout));
+      CV_Error(cv::Error::StsAssert, "Unsupport type: " + formathbDNNTensorLayout(hbDNNTensorLayout(tensor_property.tensorLayout)));
       std::abort();
       break;
   }

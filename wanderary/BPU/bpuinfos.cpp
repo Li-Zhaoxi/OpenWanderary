@@ -228,6 +228,20 @@ namespace wdr
       return out;
     }
 
+    std::ostream &operator<<(std::ostream &out, const TensorSize &ts)
+    {
+      const int d = ts.dims();
+      out << "[";
+      if (d > 0)
+      {
+        for (int k = 0; k < d - 1; k++)
+          out << ts[k] << "x";
+        out << ts[d - 1];
+      }
+      out << "]";
+      return out;
+    }
+
   }
 
 }

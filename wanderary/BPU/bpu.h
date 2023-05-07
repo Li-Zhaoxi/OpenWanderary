@@ -96,6 +96,90 @@ namespace wdr
       return input_infos; // 这里永远不会被执行
     }
 
+    // 考虑到MatSize的指针做不到内存管理，交给用户操作风险太大。因此考虑到MatShape实际上是vector<int>，因此这里做了一些扩展
+    // 后续考虑派生C语言接口的属性类
+    class TensorSize
+    {
+    public:
+      TensorSize() {}
+      ~TensorSize() {}
+      inline void create(const std::vector<int> &_shapes); // 利用一段vector创建
+      inline void create(int dimnum, const int *p);
+      inline int dims() const;
+      inline const int &operator[](int i) const;
+      inline int &operator[](int i);
+      bool operator==(const TensorSize &tz) const;
+      inline bool operator!=(const TensorSize &tz) const;
+      bool operator<=(const TensorSize &tz) const; // 判断shape是否都<=目标shape
+      bool operator>=(const TensorSize &tz) const; // 判断shape是否都>=目标shape
+      //
+      inline void clear();
+      inline void push_back(int dim);
+      inline void insert(int pos, int val);
+      //
+
+    private:
+      std::vector<int> shapes;
+    };
+
+    inline void TensorSize::create(const std::vector<int> &_shapes)
+    {
+      shapes = _shapes;
+    }
+
+    inline void TensorSize::create(int dimnum, const int *p)
+    {
+      shapes.resize(dimnum);
+      for (int k = 0; k < dimnum; k++)
+        shapes[k] = p[k];
+    }
+
+    inline int TensorSize::dims() const
+    {
+      return shapes.size();
+    }
+
+    inline const int &TensorSize::operator[](int i) const
+    {
+      if (i < 0 || i >= dims())
+      {
+        std::stringstream ss;
+        ss << "Invalid index: " << i << ", max dim: " << dims();
+        CV_Error(cv::Error::StsAssert, ss.str());
+      }
+      return shapes[i];
+    }
+
+    inline int &TensorSize::operator[](int i)
+    {
+      if (i < 0 || i >= dims())
+      {
+        std::stringstream ss;
+        ss << "Invalid index: " << i << ", max dim: " << dims();
+        CV_Error(cv::Error::StsAssert, ss.str());
+      }
+      return shapes[i];
+    }
+
+    inline bool TensorSize::operator!=(const TensorSize &tz) const
+    {
+      return !this->operator==(tz);
+    }
+
+    inline void TensorSize::push_back(int dim)
+    {
+      shapes.push_back(dim);
+    }
+
+    inline void TensorSize::clear()
+    {
+      shapes.clear();
+    }
+
+    inline void TensorSize::insert(int pos, int val)
+    {
+      shapes.insert(shapes.begin() + pos, val);
+    }
     ////////////// Tensor数据交互管理器 /////////////////
     // 拿到的数据就是已经分配好的了，目前矩阵只支持4维
     class BpuMat
@@ -105,13 +189,13 @@ namespace wdr
       ~BpuMat() {}
 
       // // 基本信息输出
-      bool empty() const;                        // 数据是否为空
-      int batchsize(bool aligned = false) const; // 返回Batchsize
-      int channels(bool aligned = false) const;  // 返回通道数
-      cv::Size size(bool aligned = false) const; // 返回维度
-      int total(bool aligned = false) const;     // 返回元素总数
-      size_t elemSize() const;                   // 返回每个元素的字节数
-
+      bool empty() const;                                            // 数据是否为空
+      int batchsize(bool aligned = false) const;                     // 返回Batchsize
+      int channels(bool aligned = false) const;                      // 返回通道数
+      cv::Size size(bool aligned = false) const;                     // 返回维度
+      int total(bool aligned = false) const;                         // 返回元素总数
+      size_t elemSize() const;                                       // 返回每个元素的字节数
+      void shape(std::vector<int> dims, bool aligned = false) const; // 返回Tensor尺寸
       // // 元素操作，直接操作原始数据，
       // 有大批量操作的最好是调取原始指针，或者转为cv::Mat去操作
       // 调用at是方便少量数据的IO，检查项较多，建议少批量使用
@@ -121,9 +205,14 @@ namespace wdr
       template <typename _Tp>
       const _Tp &at(int ib, int ic, int ih, int iw) const;
 
+      /////// cv::Mat数据拷贝到Tensor中
+      // 一种是正常通道矩阵，如果检查到维度与aligned不匹配，则数据对齐由BPU处理
+      //
+      void copyFrom(cv::InputArray cvmat);
+      void operator<<(cv::InputArray cvmat); // 数据拷贝到Tensor，只能调用一次<<
       // 通过重载<<和>>完成矩阵的赋值
       // 这里拼好的矩阵可以直接通过<<的方式进行赋值，箭头方向指的是赋值方向
-      void operator<<(cv::InputArray cvmat);        // 数据拷贝到Tensor，只能调用一次<<
+
       void operator>>(cv::OutputArray cvmat) const; // Tensor数据拷出，只能调用一次>>
 
       // 输入：Padding推断，若输入是8UC3，则默认是BGR，会根据输入自己做变换。
@@ -145,14 +234,13 @@ namespace wdr
       // 数据拷入，明确基本需求，用户不会花费大量时间输入，可以就按照图像输入
       // 推理也不一定是图像数据，Padding交给代码自动处理，
       // 如果w*h*c存在，就是自动转换格式，如果不存在，就是原始拷贝格式，如果不考虑padding，则由BPU自动来处理排布
-      void copyFrom(cv::InputArray cvmat, bool autopadding = true);
-
     private:
       friend class BpuMats;
       void update();
       std::vector<int> validdims, aligneddims;
       int32_t alignedByteSize{0}, tensorLayout{0};
 
+    private:
     private:
       int idxtensor{-1};
       std::shared_ptr<NetIOInfo> properties{nullptr};
@@ -212,8 +300,8 @@ namespace wdr
       inline int size() const; // 返回Tensor矩阵的个数
 
       // 内存交换，CPU<->BPU拷贝
-      void bpu();
-      void cpu();
+      void bpu();                   // 数据移到BPU
+      void cpu();                   // 数据移到CPU
       inline DEVICE device() const; // 返回当前设备名
 
       // 返回Tenosr序列的子集，共享参数，有时候网络A的输入是网络B的连续一段
@@ -330,38 +418,43 @@ namespace wdr
       return this->at(idx);
     }
 
+    // 加载网络
     void readNets(const std::vector<std::string> &modelpaths,
                   hbPackedDNNHandle_t &pPackedNets,
                   std::unordered_map<std::string, hbDNNHandle_t> &netsMap);
-
+    // 释放网络
     void releaseNets(hbPackedDNNHandle_t &pPackedNets);
-
+    // 读取网络输入输出属性
     void readNetProperties(const hbDNNHandle_t dnn_handle, std::vector<hbDNNTensorProperties> &properties, bool input);
-
-    // 输出重载
+    // 加载网络Tensor的尺寸，若aligned=true，则获取的是alignedshape的尺寸，否则获取的是validshape的尺寸
+    void shape(const hbDNNTensorProperties &property, TensorSize &tensorshape, bool aligned = false);
+    void shape(cv::InputArray src, TensorSize &cvshape);
+    // 内存分配
+    void createTensors(const std::vector<hbDNNTensorProperties> &properties, std::vector<hbDNNTensor> &tensors, bool autopadding = true);
+    void createTensors(const hbDNNHandle_t dnn_handle, std::vector<hbDNNTensor> &tensors, bool input, bool autopadding = true);
+    void createTensors(const hbDNNTensorProperties &property, hbDNNTensor &bputensor);
+    // 内存释放
+    void releaseTensors(std::vector<hbDNNTensor> &tensors);
+    // 内存刷新，若upload=true,则为CPU刷新到BPU上，否则为BPU刷新到CPU上
+    void flushBPU(hbDNNTensor &dst, bool upload);
+    // 内存对齐，不支持NV12，仅支持4维矩阵，后面针对这两个问题再优化+效率优化
+    void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape);
+    // 内存拷贝：数据拷贝到Tensor中
+    // cv::Mat转Tensor，用于转换输入的Mat到Tensor中
+    void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize = -1, bool flush = true);
+    void bpuMemcpy(cv::InputArray src, hbDNNTensor &dst, bool flush = true);
+    // 内存拷贝：数据从Tensor拷贝到CPU数据中
+    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize = -1);
+    void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst);
+    // 网络推理，两种模式，vector自动保证内存连续，而指针的方式需要时候需要自己注意下内存连续问题。
+    void forward(const hbDNNHandle_t dnn_handle, const std::vector<hbDNNTensor> &inTensors, std::vector<hbDNNTensor> &outTensors, int waiting_time = 0);
+    void forward(const hbDNNHandle_t dnn_handle, const hbDNNTensor *_inTensors, hbDNNTensor *_outTensors, int waiting_time = 0);
 
     // 指针这种接口不能暴漏出来
 
     // 网络推理认定为算法，因此基于Ptr模式进行创建
     // 单模型单算法推理拒绝冲突，推理时做好维度检查
     // 思考任务释放模式，通过枷锁的方式管理
-
-    // Allocate memory
-    void createTensors(const std::vector<hbDNNTensorProperties> &properties, std::vector<hbDNNTensor> &tensors, bool autopadding = true);
-    void createTensors(const hbDNNHandle_t dnn_handle, std::vector<hbDNNTensor> &tensors, bool input, bool autopadding = true);
-    void createTensors(const hbDNNTensorProperties &property, hbDNNTensor &bputensor);
-    void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize = -1);
-    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize = -1);
-
-    // cv::Mat转Tensor，用于转换输入的Mat到Tensor中
-    void bpuMemcpy(const cv::Mat &src, hbDNNTensor &dst);
-
-    // Tensor转cv:Mat，用于转换输出Tensor到Mat矩阵
-    void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst);
-
-    void forward(const hbDNNHandle_t dnn_handle, const std::vector<hbDNNTensor> &inTensors, std::vector<hbDNNTensor> &outTensors, int waiting_time = 0);
-    void forward(const hbDNNHandle_t dnn_handle, const hbDNNTensor *_inTensors, hbDNNTensor *_outTensors, int waiting_time = 0);
-    void releaseTensors(std::vector<hbDNNTensor> &tensors);
 
     ///////// 数据可视化，下面都是返回一行的string
     // 如果重载的话，很容易出现冲突的问题，因此为了方便可视化
@@ -378,10 +471,10 @@ namespace wdr
 
     // 下面这些是返回一批信息的，这里借用Json的序列化方式
     std::string formathbDNNTensorProperties(const hbDNNTensorProperties &c1);
-    std::ostream &operator<<(std::ostream &out, const NetIOInfo &c1); // 打印一组输入/输出的Tensor信息
-    std::ostream &operator<<(std::ostream &out, const NetInfos &c1);  // 打印一个模型的所有Tensor信息
-
-  } // end BPU
+    std::ostream &operator<<(std::ostream &out, const NetIOInfo &c1);  // 打印一组输入/输出的Tensor信息
+    std::ostream &operator<<(std::ostream &out, const NetInfos &c1);   // 打印一个模型的所有Tensor信息
+    std::ostream &operator<<(std::ostream &out, const TensorSize &ts); // 打印形状参数信息
+  }                                                                    // end BPU
 
 } // end wdr
 

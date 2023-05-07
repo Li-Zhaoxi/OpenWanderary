@@ -8,6 +8,8 @@
 namespace wdr
 {
 
+  // class 
+
 // refer to https://answers.opencv.org/question/226929/how-could-i-change-memory-layout-from-hwc-to-chw/
 void hwc_to_chw(cv::InputArray src, cv::OutputArray dst);
 void chw_to_hwc(cv::InputArray src, cv::OutputArray dst);

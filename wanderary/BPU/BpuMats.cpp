@@ -118,27 +118,12 @@ namespace wdr
       return alignedByteSize / total(true);
     }
 
-    void BpuMat::shape(std::vector<int> dims, bool aligned = false) const
+    void BpuMat::shape(TensorSize &tensorshape, bool aligned) const
     {
-      dims.clear();
       if (empty())
         return;
 
-      const auto &property = properties->infos[idxtensor];
-      if (aligned)
-      {
-        const int dimnum = property.alignedShape.numDimensions;
-        dims.resize(dimnum);
-        for (int k = 0; k < dimnum; k++)
-          dims[k] = property.alignedShape.dimensionSize[k];
-      }
-      else
-      {
-        const int dimnum = property.validShape.numDimensions;
-        dims.resize(dimnum);
-        for (int k = 0; k < dimnum; k++)
-          dims[k] = property.validShape.dimensionSize[k];
-      }
+      wdr::BPU::shape(properties->infos[idxtensor], tensorshape, aligned);
     }
 
     void BpuMat::copyFrom(cv::InputArray cvmat)
@@ -146,41 +131,14 @@ namespace wdr
       CV_Assert(!empty());
       const auto &property = properties->infos[idxtensor];
 
-      //// 拷贝数据约束内存一定是对齐的
-      cv::Mat mat, tmp;
-      if (cvmat.rows() > 0 && property.tensorLayout != HB_DNN_LAYOUT_NHWC)
-        hwc_to_chw(cvmat, tmp);
-      else
-        tmp = cvmat.getMat();
+      wdr::BPU::bpuMemcpy(cvmat, matset->at(idxtensor), false);
+    }
 
-      if (tmp.isContinuous())
-        mat = tmp;
-      else
-        tmp.copyTo(mat);
+    void BpuMat::copyTo(cv::OutputArray cvmat, bool aligned) const
+    {
+      CV_Assert(!empty());
 
-      // 统计输入数据的维度
-      std::vector<int> dims;
-      if (mat.rows < 0 || mat.cols < 0)
-      {
-        int srcdims = mat.size.dims();
-        CV_Assert(srcdims == 4 || srcdims == 3);
-        if (srcdims == 3)
-          dims.push_back(1);
-        for (int k = 0; k < srcdims; k++)
-          dims.push_back(mat.size[k]);
-      }
-      else // 走到这里一定是排布满足NHWC了
-      {
-        int nc = mat.channels(), nh = mat.rows, nw = mat.cols;
-        dims.resize(4);
-        dims[0] = 1, dims[1] = nh, dims[2] = nw, dims[3] = nc;
-      }
-
-      // 检查当前维度与validShape还是alignedShape匹配
-      bool matchvalid = false, matchaliged = false;
-      std::vector<int> dimvalid, dimalign;
-      shape(dimvalid, false), shape(dimalign, true);
-      CV_Assert(dims.size() == dimvalid.size() && dims.size() == dimalign.size());
+      bpuMemcpy(matset->at(idxtensor), cvmat, aligned, false);
     }
 
     ////////////////////////////// BpuMats //////////////////////////////
@@ -248,11 +206,7 @@ namespace wdr
       if (*dev == DEVICE::NET_CPU)
       {
         for (int k = 0; k < matset->size(); k++)
-        {
-          auto &src = matset->at(k);
-          HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_CLEAN),
-                           "hbSysFlushMem cpu->tensor failed");
-        }
+          flushBPU(matset->at(k), true);
         *dev == DEVICE::NET_BPU;
       }
     }
@@ -263,11 +217,7 @@ namespace wdr
       if (*dev == DEVICE::NET_BPU)
       {
         for (int k = 0; k < matset->size(); k++)
-        {
-          auto &src = matset->at(k);
-          HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
-                           "hbSysFlushMem tensor->cpu failed");
-        }
+          flushBPU(matset->at(k), false);
         *dev == DEVICE::NET_CPU;
       }
     }

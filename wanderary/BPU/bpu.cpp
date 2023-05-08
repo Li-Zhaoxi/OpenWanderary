@@ -182,11 +182,48 @@ namespace wdr
 
     void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape)
     {
-      int d1, d2, d3, d4;
       if (srcshape <= dstshape)
-        d1 = srcshape[0], d2 = srcshape[1], d3 = srcshape[2], d4 = srcshape[3];
+      {
+        int low1 = srcshape[0], low2 = srcshape[1], low3 = srcshape[2], low4 = srcshape[3];
+        int high1 = dstshape[0], high2 = dstshape[1], high3 = dstshape[2], high4 = dstshape[3];
+        int e1 = high1 - low1, e2 = high2 - low2, e3 = high3 - low3, e4 = high4 - low4;
+
+        for (int i1 = 0; i1 < low1; i1++)
+        {
+          for (int i2 = 0; i2 < low2; i2++)
+          {
+            for (int i3 = 0; i3 < low3; i3++)
+            {
+              for (int i4 = 0; i4 < low4; i4++)
+                *(dst++) = *(src++);
+              dst += e4 * high4;
+            }
+            dst += e3 * (high3 * high4);
+          }
+          dst += e2 * (high2 * high3 * high4);
+        }
+      }
       else if (srcshape >= dstshape)
-        d1 = dstshape[0], d2 = dstshape[1], d3 = dstshape[2], d4 = dstshape[3];
+      {
+        int low1 = dstshape[0], low2 = dstshape[1], low3 = dstshape[2], low4 = dstshape[3];
+        int high1 = srcshape[0], high2 = srcshape[1], high3 = srcshape[2], high4 = srcshape[3];
+        int e1 = high1 - low1, e2 = high2 - low2, e3 = high3 - low3, e4 = high4 - low4;
+
+        for (int i1 = 0; i1 < low1; i1++)
+        {
+          for (int i2 = 0; i2 < low2; i2++)
+          {
+            for (int i3 = 0; i3 < low3; i3++)
+            {
+              for (int i4 = 0; i4 < low4; i4++)
+                *(dst++) = *(src++);
+              src += e4 * high4;
+            }
+            src += e3 * (high3 * high4);
+          }
+          src += e2 * (high2 * high3 * high4);
+        }
+      }
       else
       {
         std::stringstream ss;
@@ -209,7 +246,7 @@ namespace wdr
         flushBPU(dst, true);
     }
 
-    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize)
+    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize, bool flush)
     {
       int memSize = src.properties.alignedByteSize;
       if (memsize < 0)
@@ -217,8 +254,8 @@ namespace wdr
       else
         CV_Assert(memSize >= memsize);
 
-      HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
-                       "hbSysFlushMem tensor->cpu failed");
+      if (flush)
+        flushBPU(src, false);
 
       auto data = src.sysMem[0].virAddr;
       memcpy(dst, reinterpret_cast<uint8_t *>(data), memsize);
@@ -269,6 +306,7 @@ namespace wdr
       {
         if (srcshape == validshape)
         {
+          alignMemory(mat.data, srcshape, (unsigned char *)dst.sysMem[0].virAddr, alignedshape);
         }
         else
         {
@@ -290,57 +328,87 @@ namespace wdr
         flushBPU(dst, true);
     }
 
-    void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst)
+    void bpuMemcpy(hbDNNTensor &src, cv::OutputArray dst, bool align, bool flush)
     {
       HB_CHECK_SUCCESS(hbSysFlushMem(&src.sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE),
                        "hbSysFlushMem tensor->cpu failed");
 
+      // 1. 提取valid和align的shape
       auto &property = src.properties;
-      auto &alignedShape = property.alignedShape;
-      int alignedByteSize = property.alignedByteSize;
+      TensorSize validshape, alignedshape;
+      shape(property, validshape, false), shape(property, alignedshape, true);
 
-      // allocate data
-      std::vector<int> dims(alignedShape.numDimensions);
-      for (int k = 0; k < alignedShape.numDimensions; k++)
-        dims[k] = alignedShape.dimensionSize[k];
+      // 2. 判定类别
+      bool fullsize = false, ishwc = false;
+      std::vector<int> dims;
+      if (align || validshape == alignedshape)
+        alignedshape.copyTo(dims), fullsize = true;
+      else
+        validshape.copyTo(dims), fullsize = false;
+      if (dims.size() == 4 && dims[0] == 1 && property.tensorLayout == HB_DNN_LAYOUT_NHWC) // HWC模式按照Opencv正常Mat形式存储
+        ishwc = true;
+
+      // 3. 分配内存
       switch (property.tensorType)
       {
       case HB_DNN_TENSOR_TYPE_S8:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8S, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_8S, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8S, 1));
         break;
       case HB_DNN_TENSOR_TYPE_U8:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8U, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_8U, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_8U, 1));
         break;
       case HB_DNN_TENSOR_TYPE_S16:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16S, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_16S, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16S, 1));
         break;
       case HB_DNN_TENSOR_TYPE_U16:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16U, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_16U, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_16U, 1));
         break;
       case HB_DNN_TENSOR_TYPE_F32:
-        std::cout << "Float" << std::endl;
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32F, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_32F, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32F, 1));
         break;
       case HB_DNN_TENSOR_TYPE_S32:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32S, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_32S, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_32S, 1));
         break;
       case HB_DNN_TENSOR_TYPE_F64:
-        dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_64F, 1));
+        if (ishwc)
+          dst.create(dims[1], dims[2], CV_MAKETYPE(CV_64F, dims[3]));
+        else
+          dst.create(dims.size(), &dims[0], CV_MAKETYPE(CV_64F, 1));
         break;
       default:
         CV_Error(cv::Error::StsAssert, "Unsupport type: " + formathbDNNDataType(hbDNNDataType(property.tensorType)));
         break;
       }
 
-      std::cout << "out dim: " << dst.size << std::endl;
-
-      // copy date
-      int dstmemsize = dst.total() * dst.elemSize();
-      CV_Assert(dstmemsize == alignedByteSize);
-
-      memcpy(reinterpret_cast<uint8_t *>(dst.data),
-             reinterpret_cast<uint8_t *>(src.sysMem[0].virAddr),
-             dstmemsize);
+      // 4. 内存拷贝，如果fullsize为true，则不存在对齐问题，可以直接拷贝
+      cv::Mat tmp = dst.getMat();
+      if (fullsize)
+      {
+        int dstmemsize = tmp.total() * tmp.elemSize();
+        bpuMemcpy(tmp.data, src, dstmemsize, false);
+      }
+      else
+      {
+        alignMemory((unsigned char *)src.sysMem[0].virAddr, alignedshape, tmp.data, validshape);
+      }
     }
 
     void releaseTensors(std::vector<hbDNNTensor> &tensors)

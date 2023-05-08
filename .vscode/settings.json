@@ -78,5 +78,6 @@
   "cmake.ctest.parallelJobs": 4,
   "C_Cpp.intelliSenseMemoryLimit": 1024,
   "files.maxMemoryForLargeFilesMB": 1024,
-  "typescript.tsserver.maxTsServerMemory": 1024
+  "typescript.tsserver.maxTsServerMemory": 1024,
+  "cmake.parallelJobs": 3
 }

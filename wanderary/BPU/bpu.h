@@ -108,6 +108,7 @@ namespace wdr
       inline int dims() const;
       inline const int &operator[](int i) const;
       inline int &operator[](int i);
+      inline void copyTo(std::vector<int> &_shapes) const;
       bool operator==(const TensorSize &tz) const;
       inline bool operator!=(const TensorSize &tz) const;
       bool operator<=(const TensorSize &tz) const; // 判断shape是否都<=目标shape
@@ -180,6 +181,11 @@ namespace wdr
     {
       shapes.insert(shapes.begin() + pos, val);
     }
+
+    inline void TensorSize::copyTo(std::vector<int> &_shapes) const
+    {
+      _shapes = shapes;
+    }
     ////////////// Tensor数据交互管理器 /////////////////
     // 拿到的数据就是已经分配好的了，目前矩阵只支持4维
     class BpuMat
@@ -189,13 +195,13 @@ namespace wdr
       ~BpuMat() {}
 
       // // 基本信息输出
-      bool empty() const;                                            // 数据是否为空
-      int batchsize(bool aligned = false) const;                     // 返回Batchsize
-      int channels(bool aligned = false) const;                      // 返回通道数
-      cv::Size size(bool aligned = false) const;                     // 返回维度
-      int total(bool aligned = false) const;                         // 返回元素总数
-      size_t elemSize() const;                                       // 返回每个元素的字节数
-      void shape(std::vector<int> dims, bool aligned = false) const; // 返回Tensor尺寸
+      bool empty() const;                                              // 数据是否为空
+      int batchsize(bool aligned = false) const;                       // 返回Batchsize
+      int channels(bool aligned = false) const;                        // 返回通道数
+      cv::Size size(bool aligned = false) const;                       // 返回维度
+      int total(bool aligned = false) const;                           // 返回元素总数
+      size_t elemSize() const;                                         // 返回每个元素的字节数，不要压缩
+      void shape(TensorSize &tensorshape, bool aligned = false) const; // 返回Tensor尺寸
       // // 元素操作，直接操作原始数据，
       // 有大批量操作的最好是调取原始指针，或者转为cv::Mat去操作
       // 调用at是方便少量数据的IO，检查项较多，建议少批量使用
@@ -204,16 +210,23 @@ namespace wdr
       _Tp &at(int ib, int ic, int ih, int iw);
       template <typename _Tp>
       const _Tp &at(int ib, int ic, int ih, int iw) const;
-
+      template <typename _Tp>
+      _Tp *data();
       /////// cv::Mat数据拷贝到Tensor中
       // 一种是正常通道矩阵，如果检查到维度与aligned不匹配，则数据对齐由BPU处理
-      //
+      // 数据拷入，明确基本需求，用户不会花费大量时间输入，可以就按照图像输入
+      // 推理也不一定是图像数据，Padding交给代码自动处理，
+      // 如果w*h*c存在，就是自动转换格式，如果不存在，就是原始拷贝格式，如果不考虑padding，则由BPU自动来处理排布
       void copyFrom(cv::InputArray cvmat);
-      void operator<<(cv::InputArray cvmat); // 数据拷贝到Tensor，只能调用一次<<
+      inline void operator<<(cv::InputArray cvmat); // 数据拷贝到Tensor，只能调用一次<<
+
       // 通过重载<<和>>完成矩阵的赋值
       // 这里拼好的矩阵可以直接通过<<的方式进行赋值，箭头方向指的是赋值方向
-
-      void operator>>(cv::OutputArray cvmat) const; // Tensor数据拷出，只能调用一次>>
+      // 数据拷出，明确基本需求
+      // 1. 拷贝出原始数据，推理数据还需要后处理，因此没必要补充带有Mask的拷贝，convertTo需求不强，有需求可以转为CVmat处理
+      // 2. 拷贝出带有Mask的数据，如果不考虑padding问题，则由WDR来处理数据排布
+      void copyTo(cv::OutputArray cvmat, bool aligned = false) const;
+      inline void operator>>(cv::OutputArray cvmat) const; // Tensor数据拷出，只能调用一次>>
 
       // 输入：Padding推断，若输入是8UC3，则默认是BGR，会根据输入自己做变换。
       // 若输入是图像，则会自动做处理，否则需要人工处理
@@ -223,24 +236,12 @@ namespace wdr
 
       // 输出：Padding无法推断，可以利用enum进行推断
 
-      template <typename _Tp>
-      _Tp *data();
-
-      // 数据拷出，明确基本需求
-      // 1. 拷贝出原始数据，推理数据还需要后处理，因此没必要补充带有Mask的拷贝，convertTo需求不强，有需求可以转为CVmat处理
-      // 2. 拷贝出带有Mask的数据，如果不考虑padding问题，则由WDR来处理数据排布
-      void copyTo(cv::OutputArray cvmat, bool autopadding = true) const;
-
-      // 数据拷入，明确基本需求，用户不会花费大量时间输入，可以就按照图像输入
-      // 推理也不一定是图像数据，Padding交给代码自动处理，
-      // 如果w*h*c存在，就是自动转换格式，如果不存在，就是原始拷贝格式，如果不考虑padding，则由BPU自动来处理排布
     private:
       friend class BpuMats;
       void update();
       std::vector<int> validdims, aligneddims;
       int32_t alignedByteSize{0}, tensorLayout{0};
 
-    private:
     private:
       int idxtensor{-1};
       std::shared_ptr<NetIOInfo> properties{nullptr};
@@ -287,6 +288,16 @@ namespace wdr
     _Tp *BpuMat::data()
     {
       return (_Tp *)matset->at(idxtensor).sysMem[0].virAddr;
+    }
+
+    inline void BpuMat::operator<<(cv::InputArray cvmat)
+    {
+      copyFrom(cvmat);
+    }
+
+    inline void BpuMat::operator>>(cv::OutputArray cvmat) const
+    {
+      copyTo(cvmat, false);
     }
 
     //////////////  模型输入管理器 【非线程安全】 /////////////////
@@ -444,8 +455,8 @@ namespace wdr
     void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize = -1, bool flush = true);
     void bpuMemcpy(cv::InputArray src, hbDNNTensor &dst, bool flush = true);
     // 内存拷贝：数据从Tensor拷贝到CPU数据中
-    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize = -1);
-    void bpuMemcpy(hbDNNTensor &src, cv::Mat &dst);
+    void bpuMemcpy(uint8_t *dst, hbDNNTensor &src, int memsize = -1, bool flush = true);
+    void bpuMemcpy(hbDNNTensor &src, cv::OutputArray dst, bool align = true, bool flush = true);
     // 网络推理，两种模式，vector自动保证内存连续，而指针的方式需要时候需要自己注意下内存连续问题。
     void forward(const hbDNNHandle_t dnn_handle, const std::vector<hbDNNTensor> &inTensors, std::vector<hbDNNTensor> &outTensors, int waiting_time = 0);
     void forward(const hbDNNHandle_t dnn_handle, const hbDNNTensor *_inTensors, hbDNNTensor *_outTensors, int waiting_time = 0);

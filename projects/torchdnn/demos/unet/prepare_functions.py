@@ -3,6 +3,14 @@ import numpy as np
 import cv2
 from scipy.special import softmax
 
+def get_rgb_image(imgpath: str) -> np.ndarray:
+  img = cv2.imread(imgpath)
+  if len(img.shape) == 2:
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+  else:
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+  return img
+
 def check_matrix_equal(src: np.ndarray, dst: np.ndarray, thre, saveroot, name):
   assert isinstance(src, np.ndarray), f"src must be np.ndarray, but it is {type(src)}"
   assert isinstance(dst, np.ndarray), f"dst must be np.ndarray, but it is {type(dst)}"

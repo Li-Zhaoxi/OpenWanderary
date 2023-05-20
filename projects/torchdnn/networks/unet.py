@@ -83,7 +83,7 @@ class OutConvy(nn.Module):
         return x
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, seg_classes, colour_classes, bilinear=True):
+    def __init__(self, n_channels, seg_classes, colour_classes = 2, bilinear=True):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.seg_classes = seg_classes
@@ -101,7 +101,8 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, seg_classes)
-
+        
+        # 没用上的参数
         self.inc1 = DoubleConv(seg_classes, 64)
         self.down11 = Down(64, 128)
         self.down21 = Down(128, 256)

@@ -132,9 +132,10 @@ int test_c_api()
 
   //////////// 模型推理：预处理→BPU推理→后处理 ////////////
   // 1. 加载图像&&图像预处理
+  const int imgh = 256, imgw = 256; // 模型的输入Size和分割输出的Size
   cv::Mat img = cv::imread(imgpath);
   // 转换模型时，输入的Tensor排布为HWC，因此不需要进行通道变换
-  cv::resize(img, img, cv::Size(256, 256));
+  cv::resize(img, img, cv::Size(imgw, imgh));
   // 由于输入和BPU的Tensor存在不对齐问题，因此需要配置为自动对齐
   auto &tensor = input_tensors[0];
   tensor.properties.alignedShape = tensor.properties.validShape;
@@ -146,9 +147,35 @@ int test_c_api()
   hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
 
   // 4. 推理模型
-  hbDNNTaskHandle_t task_handle = nullptr;
+  hbDNNTaskHandle_t task_handle = nullptr; // 任务句柄
   hbDNNInferCtrlParam infer_ctrl_param;
   HB_DNN_INITIALIZE_INFER_CTRL_PARAM(&infer_ctrl_param);
   auto ptr_outtensor = output_tensors.data();
   hbDNNInfer(&task_handle, &ptr_outtensor, input_tensors.data(), dnn_handle, &infer_ctrl_param);
+
+  // 5. 等待任务结束
+  hbDNNWaitTaskDone(task_handle, 0);
+
+  // 6. 释放任务
+  hbDNNReleaseTask(task_handle);
+
+  // 7. 刷新BPU数据到CPU
+  hbSysFlushMem(&(output_tensors[0].sysMem[0]), HB_SYS_MEM_CACHE_INVALIDATE);
+
+  // 8. 从Tensor地址memcpy后处理数据
+  std::vector<int> dims = {1, 2, imgh, imgw}; // 模型输出维度
+  cv::Mat pred(dims.size(), &dims[0], CV_32FC1);
+  memcpy(pred.data, (unsigned char *)output_tensors[0].sysMem[0].virAddr, pred.total() * pred.elemSize());
+
+  // 9. 数据后处理+保存最终分割结果
+
+  //////////// 模型推理：预处理→BPU推理→后处理 ////////////
+  // 1. 释放内存
+  for (auto &input : input_tensors)
+    hbSysFreeMem(&(input.sysMem[0]));
+  for (auto &output : output_tensors)
+    hbSysFreeMem(&(output.sysMem[0]));
+
+  // 2. 释放模型
+  hbDNNRelease(packed_dnn_handle);
 }

@@ -2,6 +2,7 @@ build/
 lib/
 bin/
 examples/modules
-
+__pycache__
 
 *.bin
+projects/torchdnn/data/unet

@@ -20,6 +20,6 @@ datain = preprocess(img, 256, 256)
 inputs = {session.get_inputs()[0].name: datain} # 构建onnx输入，是个dict
 outputs = session.run(None, inputs)
 # outputs是个列表，记录了模型的所有输出，unet输出只有一个所以选择[0]
-pred = postprocess(outputs[0])[0] 
+pred = postprocess(outputs[0])
 for j in range(pred.shape[0]):
   cv2.imwrite(os.path.join(dataroot, f"pred_onnx_b{j}.png"), pred[j].astype(np.uint8))

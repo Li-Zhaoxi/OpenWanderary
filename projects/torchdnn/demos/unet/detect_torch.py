@@ -1,14 +1,13 @@
 import os
 import sys
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd()) # 保证UNet可被import
 import cv2
 import numpy as np
 import torch
 from networks.unet import UNet
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-
-
+from prepare_functions import get_rgb_image
 
 # 基于torch的数据预处理：输入维度[h,w,c]，返回的数据排布为[c,h,w]
 def preprocess_torch(img, modelh, modelw):
@@ -39,11 +38,7 @@ net = net.module.cpu() # 一定要指定为CPU
 
 # 3. 图像数据(模型以RGB为输入)
 imgpath = os.path.join(dataroot, "mra_img_12.jpg")
-img = cv2.imread(imgpath)
-if len(img.shape) == 2:
-  img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-else:
-  img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+img = get_rgb_image(imgpath)
 
 # 4. 数据预处理
 datain = preprocess_torch(img, 256, 256)['image'] # cxhxw
@@ -54,9 +49,8 @@ dataout = net(datain)
 
 # 6. 数据后处理：pred维度[1,256,256]
 pred = postprocess_torch(dataout)
-print(pred.shape, type(pred))
 for j in range(pred.shape[0]):
-  cv2.imwrite(os.path.join(dataroot, f"pred_batch_{j}.png"), pred[j].astype(np.uint8))
+  cv2.imwrite(os.path.join(dataroot, f"pred_torch_b{j}.png"), pred[j].astype(np.uint8))
 
 # 7. 保存校验数据
 data = {"image": img,

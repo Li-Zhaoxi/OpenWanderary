@@ -44,8 +44,7 @@ def check_matrix_equal(src: np.ndarray, dst: np.ndarray, thre, saveroot, name):
   print(f"finish the check task: {name}")
 
 
-# 无torch依赖的预处理函数
-# img为RGB通道，排布HWC
+# 无torch依赖的预处理函数: img为RGB通道，排布HWC
 def preprocess(img: np.ndarray, modelh, modelw) -> np.ndarray:
   img = cv2.resize(img, (modelw, modelh))# Resize图像尺寸
   img = img.transpose(2, 0, 1) # 通道由HWC变为CHW

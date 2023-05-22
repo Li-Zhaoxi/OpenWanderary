@@ -11,6 +11,12 @@ def get_rgb_image(imgpath: str) -> np.ndarray:
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
   return img
 
+def get_bgr_image(imgpath: str) -> np.ndarray:
+  img = cv2.imread(imgpath)
+  if len(img.shape) == 2:
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+  return img
+
 def check_matrix_equal(src: np.ndarray, dst: np.ndarray, thre, saveroot, name):
   assert isinstance(src, np.ndarray), f"src must be np.ndarray, but it is {type(src)}"
   assert isinstance(dst, np.ndarray), f"dst must be np.ndarray, but it is {type(dst)}"

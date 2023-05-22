@@ -65,3 +65,18 @@ def postprocess(outputs: np.ndarray) -> np.ndarray:
   # 大于0.5的就是前景
   y_list = (y_list > 0.5).astype(np.uint8) * 255 
   return y_list
+
+
+# 校验数据预处理函数, 注意输入的img是RGB通道
+def preprocess_calibration(img: np.ndarray, modelh, modelw) -> np.ndarray:
+  img = cv2.resize(img, (modelw, modelh))# Resize图像尺寸
+  img = img.transpose(2, 0, 1) # 通道由HWC变为CHW
+  img = np.expand_dims(img, 0) # 增加一维，此时维度为1CHW
+  return img
+
+# 板端数据预处理函数, 注意输入的img是bgr通道
+def preprocess_onboard(img: np.ndarray, modelh, modelw) -> np.ndarray:
+  img = cv2.resize(img, (modelw, modelh))# Resize图像尺寸
+  img = np.expand_dims(img, 0) # 增加一维，此时维度为1CHW
+  img = np.ascontiguousarray(img) # 板端的推理是封装的C++，安全起见这里约束矩阵内存连续
+  return img

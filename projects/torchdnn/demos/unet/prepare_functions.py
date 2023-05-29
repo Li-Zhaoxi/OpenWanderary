@@ -1,4 +1,7 @@
+import sys
 import os
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
+
 import numpy as np
 import cv2
 from scipy.special import softmax
@@ -7,7 +10,7 @@ def get_rgb_image(imgpath: str) -> np.ndarray:
   img = cv2.imread(imgpath)
   if len(img.shape) == 2:
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-  else:
+  else: 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
   return img
 
@@ -83,6 +86,6 @@ def preprocess_calibration(img: np.ndarray, modelh, modelw) -> np.ndarray:
 # 板端数据预处理函数, 注意输入的img是bgr通道
 def preprocess_onboard(img: np.ndarray, modelh, modelw) -> np.ndarray:
   img = cv2.resize(img, (modelw, modelh))# Resize图像尺寸
-  img = np.expand_dims(img, 0) # 增加一维，此时维度为1CHW
+  img = np.expand_dims(img, 0) # 增加一维，此时维度为1HWC
   img = np.ascontiguousarray(img) # 板端的推理是封装的C++，安全起见这里约束矩阵内存连续
   return img

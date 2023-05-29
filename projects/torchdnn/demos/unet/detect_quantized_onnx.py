@@ -22,5 +22,13 @@ inputs = {session.get_inputs()[0].name: (datain.astype(np.int32) - 128).astype(n
 outputs = session.run(None, inputs)
 
 # 后处理并保存结果
-pred = postprocess(outputs[0])[0]
-cv2.imwrite(os.path.join(dataroot, "pred_quantized_onnx.png"), pred)
+pred = postprocess(outputs[0])
+cv2.imwrite(os.path.join(dataroot, "pred_quantized_onnx.png"), pred[0])
+
+# 保存校验数据
+data = {"image": img,
+        "datain": datain,
+        "dataout": outputs[0],
+        "pred": pred}
+np.savez(os.path.join(dataroot, "unet_checkstage2.npz"), **data)
+

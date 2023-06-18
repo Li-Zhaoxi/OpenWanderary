@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 import os
-from prepare_functions import get_rgb_image, preprocess_onboard, postprocess
+from prepare_functions import get_bgr_image, preprocess_onboard, postprocess
 # horizon_nn 是在docker中才有的包
 from horizon_nn import horizon_onnxruntime
 from horizon_nn import horizon_onnx
@@ -12,7 +12,7 @@ imgpath = os.path.join(dataroot, "mra_img_12.jpg")
 onnxpath = os.path.join(dataroot, "model_output", "unet_quantized_model.onnx")
 
 # 加载图像和ONNX模型
-img = get_rgb_image(imgpath)
+img = get_bgr_image(imgpath)
 session = horizon_onnxruntime.InferenceSession(onnxpath)
 
 # 板端预处理函数

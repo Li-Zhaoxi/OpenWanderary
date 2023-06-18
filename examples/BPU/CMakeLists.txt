@@ -21,8 +21,8 @@ target_link_libraries(${BIN}
 -lopencv_imgcodecs openwdr_bpu)
 
 
-set(BIN inter_unet_standalong)
-add_executable(${BIN} inter_unet_standalong.cpp)
+set(BIN infer_unet_standalong)
+add_executable(${BIN} infer_unet_standalong.cpp)
 target_link_libraries(${BIN} 
 -lpthread -lrt -dl 
 /usr/lib/hbbpu/libdnn.so

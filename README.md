@@ -19,7 +19,7 @@
 
 依赖库安装，可能也有一些没在这里体现，比如glog,gflags等
 ```
-sudo apt-get install libboost-filesystem1.71-dev
+sudo apt-get install libopencv-dev libboost-filesystem1.71-dev
 ```
 编译代码，内存多可以试试make -j6。交叉编译还没整明白ㄒoㄒ
 ```

@@ -1,4 +1,4 @@
-### 注意：改代码仅能在OE docker中运行
+### 注意：该代码仅能在OE docker中运行
 import numpy as np
 import cv2
 import os
@@ -15,7 +15,7 @@ onnxpath = os.path.join(dataroot, "model_output", "unet_quantized_model.onnx")
 img = get_rgb_image(imgpath)
 session = horizon_onnxruntime.InferenceSession(onnxpath)
 
-# 校验预处理函数
+# 板端预处理函数
 datain = preprocess_onboard(img, 256, 256) # 1x256x256x3
 # 构建输入并推理，记得要转为int8
 inputs = {session.get_inputs()[0].name: (datain.astype(np.int32) - 128).astype(np.int8)}

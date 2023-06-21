@@ -93,6 +93,9 @@ int main(int argc, char **argv)
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
 
+  if (getuid())
+    CV_Error(cv::Error::StsError, "You must use ROOT or SUDO to use these BPU functions.");
+
   std::string mode = FLAGS_mode;
   std::cout << "mode: " << mode << std::endl;
 

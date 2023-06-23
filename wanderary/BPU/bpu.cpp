@@ -289,7 +289,7 @@ namespace wdr
           hwc_to_chw(src, tmp);
         else
         {
-          LOG(INFO) << "tmp = src.getMat();";
+          // LOG(INFO) << "tmp = src.getMat();";
           tmp = src.getMat();
         }
 
@@ -433,7 +433,7 @@ namespace wdr
       if (fullsize)
       {
         int dstmemsize = tmp.total() * tmp.elemSize();
-        LOG(INFO) << "fullsize: " << dstmemsize;
+        // LOG(INFO) << "fullsize: " << dstmemsize;
         bpuMemcpy(tmp.data, src, dstmemsize, false);
       }
       else

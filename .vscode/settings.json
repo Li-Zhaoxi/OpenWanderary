@@ -79,5 +79,10 @@
   "C_Cpp.intelliSenseMemoryLimit": 1024,
   "files.maxMemoryForLargeFilesMB": 1024,
   "typescript.tsserver.maxTsServerMemory": 1024,
-  "cmake.parallelJobs": 3
+  "cmake.parallelJobs": 3,
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none"
 }

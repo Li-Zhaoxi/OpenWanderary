@@ -324,7 +324,7 @@ namespace wdr
     private: // 友元接口相关
       friend class BpuNets;
       void release();                      // 初始化
-      void create(const NetIOInfo &infos); // 分配内存
+      void create(const NetIOInfo &infos, bool autopadding); // 分配内存
 
     private:
       cv::Range range;
@@ -392,7 +392,7 @@ namespace wdr
       bool checkTensorProperties(int idx, const BpuMats &bpumats, bool input, std::string &errmsg) const;
 
       // 输入模型索引，分配输入输出的数据，存在BpuMats中
-      void init(int idx, BpuMats &input_mats, BpuMats &output_mats) const;
+      void init(int idx, BpuMats &input_mats, BpuMats &output_mats, bool autopadding) const;
 
       // 输入模型索引+输入输出Tensor，完成推理
       void forward(int idx, const BpuMats &input_mats, BpuMats &output_mats) const;
@@ -449,7 +449,7 @@ namespace wdr
     // 内存刷新，若upload=true,则为CPU刷新到BPU上，否则为BPU刷新到CPU上
     void flushBPU(hbDNNTensor &dst, bool upload);
     // 内存对齐，不支持NV12，仅支持4维矩阵，后面针对这两个问题再优化+效率优化
-    void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape);
+    void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape, int elementsize);
     // 内存拷贝：数据拷贝到Tensor中
     // cv::Mat转Tensor，用于转换输入的Mat到Tensor中
     void bpuMemcpy(hbDNNTensor &dst, const uint8_t *src, int memsize = -1, bool flush = true);

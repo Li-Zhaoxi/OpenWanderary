@@ -13,14 +13,16 @@
 
 DEFINE_string(mode, "", "");
 
-#define HB_CHECK_SUCCESS(value, errmsg)                              \
-  do {                                                               \
-    /*value can be call of function*/                                \
-    auto ret_code = value;                                           \
-    if (ret_code != 0) {                                             \
+#define HB_CHECK_SUCCESS(value, errmsg)                    \
+  do                                                       \
+  {                                                        \
+    /*value can be call of function*/                      \
+    auto ret_code = value;                                 \
+    if (ret_code != 0)                                     \
+    {                                                      \
       LOG(ERROR) << errmsg << ", error code:" << ret_code; \
-      abort();                                               \
-    }                                                                \
+      abort();                                             \
+    }                                                      \
   } while (0);
 
 // 获取Tensor的宽高信息[validShape，非对齐宽高]
@@ -32,7 +34,6 @@ cv::Size get_hw(hbDNNTensorProperties &pro)
   else
     return cv::Size(pro.validShape.dimensionSize[2], pro.validShape.dimensionSize[1]);
 }
-
 
 void get_bgr_image(const std::string &imgpath, cv::Mat &img)
 {
@@ -50,11 +51,11 @@ void preprocess_onboard(const cv::Mat img, int modelh, int modelw, cv::Mat &data
   // Python: img = cv2.resize(img, (modelw, modelh))
   cv::resize(img, tmp, cv::Size(modelw, modelh));
 
-  // Python: img = np.expand_dims(img, 0) 
+  // Python: img = np.expand_dims(img, 0)
   // Python: img = np.ascontiguousarray(img)
   std::vector<int> dims = {1, tmp.rows, tmp.cols, tmp.channels()};
   datain.create(dims.size(), dims.data(), CV_MAKETYPE(img.depth(), 1));
-  
+
   memcpy(datain.data, tmp.data, tmp.total() * tmp.elemSize());
 }
 
@@ -65,24 +66,23 @@ void postprocess(const cv::Mat outputs, cv::Mat &pred)
   int b = outputs.size[0], c = outputs.size[1], h = outputs.size[2], w = outputs.size[3];
   CV_Assert(c == 2);
 
-  // Python: y_list = softmax(outputs, axis = 1)[:, 1, :, :] 
+  // Python: y_list = softmax(outputs, axis = 1)[:, 1, :, :]
   // Python：y_list = (y_list > 0.5).astype(np.uint8) * 255
   // 这里可以简化为，比较[:, 1, :, :]和[:, 0, :, :]的大小，若前景大于背景，Label给255
   std::vector<int> dims = {b, h, w};
   pred.create(dims.size(), dims.data(), CV_8UC1);
-  for(int i = 0; i < b; i++)
+  for (int i = 0; i < b; i++)
   {
-    float *_bdata = ((float*)outputs.data) + i * c * h * w; // 背景指针
-    float *_fdata = _bdata + h * w; // 前景指针
+    float *_bdata = ((float *)outputs.data) + i * c * h * w; // 背景指针
+    float *_fdata = _bdata + h * w;                          // 前景指针
 
     unsigned char *_label = pred.data + i * h * w;
 
     int total_hw = h * w;
-    for(int k = 0; k < total_hw; k++, _label++, _bdata++, _fdata++)
+    for (int k = 0; k < total_hw; k++, _label++, _bdata++, _fdata++)
       *_label = *_fdata > *_bdata ? 255 : 0;
   }
 }
-
 
 void infer_unet();
 void check_all();
@@ -200,7 +200,7 @@ void infer_unet()
 
   // 2. 预处理数据memcpy至BPU
   memcpy(tensor.sysMem[0].virAddr, datain.data, datain.total() * datain.elemSize());
-  
+
   // 3. 刷新CPU数据到BPU
   hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
   // 4. 推理模型
@@ -218,7 +218,7 @@ void infer_unet()
   // 7. 刷新BPU数据到CPU
   hbSysFlushMem(&(output_tensors[0].sysMem[0]), HB_SYS_MEM_CACHE_INVALIDATE);
   // 8. 从Tensor地址memcpy后处理数据
-  dataout.create(output_tensors[0].properties.alignedShape.numDimensions, 
+  dataout.create(output_tensors[0].properties.alignedShape.numDimensions,
                  output_tensors[0].properties.alignedShape.dimensionSize, CV_32FC1);
   memcpy(dataout.data, (unsigned char *)output_tensors[0].sysMem[0].virAddr, dataout.total() * dataout.elemSize());
   LOG(INFO) << "Finish infer";
@@ -226,12 +226,11 @@ void infer_unet()
   // 9. 数据后处理+保存最终分割结果
   postprocess(dataout, pred);
   int offset = pred.size[1] * pred.size[2] * pred.elemSize();
-  for(int k = 0; k < pred.size[0]; k++)
+  for (int k = 0; k < pred.size[0]; k++)
   {
     cv::Mat batchpred(pred.size[1], pred.size[2], CV_8UC1, pred.data + k * offset);
     cv::imwrite(dataroot + "pred_bin_cpp_b" + std::to_string(k) + ".png", batchpred);
   }
-
 
   //////////// 模型推理：预处理→BPU推理→后处理 ////////////
   // 1. 释放内存
@@ -249,9 +248,9 @@ std::vector<size_t> get_shape(cv::Mat &mat)
   CV_Assert(mat.rows < 0);
 
   std::vector<size_t> shapes;
-  for(int k = 0; k < mat.size.dims(); k++)
+  for (int k = 0; k < mat.size.dims(); k++)
     shapes.push_back(mat.size[k]);
-  
+
   return shapes;
 }
 
@@ -262,7 +261,6 @@ std::vector<int> get_dims(const cnpy::NpyArray &arr)
     dims.push_back(dim);
   return dims;
 }
-
 
 void check_preprocess(const cnpy::NpyArray &arr_image, cv::Mat &datain)
 {
@@ -278,7 +276,7 @@ void check_preprocess(const cnpy::NpyArray &arr_image, cv::Mat &datain)
 
 void check_postprocess(const cnpy::NpyArray &arr_dataout, cv::Mat &pred)
 {
-  // Load image
+  // Load dataout
   cv::Mat dataout;
   std::vector<int> dims = get_dims(arr_dataout);
   dataout.create(dims.size(), dims.data(), CV_32FC1);
@@ -290,7 +288,7 @@ void check_postprocess(const cnpy::NpyArray &arr_dataout, cv::Mat &pred)
 
 void check_infer(const std::string &binpath, const cnpy::NpyArray &arr_datain, cv::Mat &dataout)
 {
-  // Load image
+  // Load datain
   cv::Mat datain;
   CV_Assert(arr_datain.shape.size() == 4);
   std::vector<int> dims = get_dims(arr_datain);
@@ -345,14 +343,13 @@ void check_infer(const std::string &binpath, const cnpy::NpyArray &arr_datain, c
   }
   LOG(INFO) << "Finish initializing input/output tensors";
 
-
   // -----------------模型推理：预处理→BPU推理→后处理--------------------
   auto &tensor = input_tensors[0];
   tensor.properties.alignedShape = tensor.properties.validShape;
 
   // 2. 预处理数据memcpy至BPU
   memcpy(tensor.sysMem[0].virAddr, datain.data, datain.total() * datain.elemSize());
-  
+
   // 3. 刷新CPU数据到BPU
   hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
   // 4. 推理模型
@@ -370,7 +367,7 @@ void check_infer(const std::string &binpath, const cnpy::NpyArray &arr_datain, c
   // 7. 刷新BPU数据到CPU
   hbSysFlushMem(&(output_tensors[0].sysMem[0]), HB_SYS_MEM_CACHE_INVALIDATE);
   // 8. 从Tensor地址memcpy后处理数据
-  dataout.create(output_tensors[0].properties.alignedShape.numDimensions, 
+  dataout.create(output_tensors[0].properties.alignedShape.numDimensions,
                  output_tensors[0].properties.alignedShape.dimensionSize, CV_32FC1);
   memcpy(dataout.data, (unsigned char *)output_tensors[0].sysMem[0].virAddr, dataout.total() * dataout.elemSize());
   LOG(INFO) << "Finish infer";
@@ -386,8 +383,6 @@ void check_infer(const std::string &binpath, const cnpy::NpyArray &arr_datain, c
   hbDNNRelease(packed_dnn_handle);
 }
 
-
-
 void check_all()
 {
   std::string dataroot = "projects/torchdnn/data/unet/";
@@ -395,22 +390,28 @@ void check_all()
   std::string binpath = dataroot + "model_output/unet.bin";
   std::string savepath = dataroot + "unet_checkcppresults.npz";
 
+  // 加载各阶段理论值npz文件
   cnpy::npz_t datanpz = cnpy::npz_load(npzpath);
 
   cv::Mat datain, dataout, pred;
 
+  // (1) 预处理校验过程：输入理论图像数据，返回预处理结果
   LOG(INFO) << "Start check_preprocess";
+  // 通过字符串可直接访问npz中的数据，返回cnpy::NpyArray
   check_preprocess(datanpz["image"], datain);
+
+  // (2) 后处理校验过程：输入推理理论输出，返回后处理预测结果
   LOG(INFO) << "Start check_postprocess";
   check_postprocess(datanpz["dataout"], pred);
+
+  // (3) 推理校验过程：输入推理所需的理论值，返回推理结果
   LOG(INFO) << "Start check_infer";
   check_infer(binpath, datanpz["datain"], dataout);
 
+  // 保存各个阶段的输出值到npz文件
   LOG(INFO) << "Start saving results";
-  cnpy::npz_save(savepath, "datain", (unsigned char*)datain.data, get_shape(datain), "w"); 
-  cnpy::npz_save(savepath, "dataout", (float*)dataout.data, get_shape(dataout), "a"); 
-  cnpy::npz_save(savepath, "pred", (unsigned char*)pred.data, get_shape(pred), "a"); 
+  cnpy::npz_save(savepath, "datain", (unsigned char *)datain.data, get_shape(datain), "w");
+  cnpy::npz_save(savepath, "dataout", (float *)dataout.data, get_shape(dataout), "a");
+  cnpy::npz_save(savepath, "pred", (unsigned char *)pred.data, get_shape(pred), "a");
   LOG(INFO) << "Finish saving results in " << savepath;
-
-
-} 
+}

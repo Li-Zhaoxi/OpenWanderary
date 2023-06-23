@@ -12,13 +12,19 @@ set(BIN infer-unet)
 add_executable(${BIN} infer-unet.cpp)
 target_link_libraries(${BIN} 
 -lopencv_imgcodecs
-openwdr_core openwdr_bpu openwdr_dnn)
+openwdr_core openwdr_bpu openwdr_dnn cnpy)
+
+set(BIN infer-yolov5)
+add_executable(${BIN} infer-yolov5.cpp)
+target_link_libraries(${BIN} 
+-lopencv_imgcodecs
+openwdr_core openwdr_bpu openwdr_dnn cnpy)
 
 
 set(BIN print-infos)
 add_executable(${BIN} print-infos.cpp)
 target_link_libraries(${BIN} 
--lopencv_imgcodecs openwdr_bpu)
+-lopencv_imgcodecs openwdr_core openwdr_bpu)
 
 
 set(BIN infer_unet_standalong)

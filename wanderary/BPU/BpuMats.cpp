@@ -69,9 +69,9 @@ namespace wdr
     bool BpuMat::empty() const
     {
       if (alignedByteSize <= 0)
-        return false;
-      else
         return true;
+      else
+        return false;
     }
 
     int BpuMat::batchsize(bool aligned) const
@@ -162,13 +162,15 @@ namespace wdr
       matset = nullptr, properties = nullptr, dev = nullptr;
     }
 
-    void BpuMats::create(const NetIOInfo &infos)
+    void BpuMats::create(const NetIOInfo &infos, bool autopadding)
     {
       this->release();
       properties = std::make_shared<NetIOInfo>(infos);
       const int num = properties->size();
       matset = std::make_shared<std::vector<hbDNNTensor>>();
-      createTensors(properties->infos, *matset, false);
+      createTensors(properties->infos, *matset, autopadding);
+
+      range.start = 0, range.end = range.start + num;
 
       dev = std::make_shared<DEVICE>();
       *dev = DEVICE::NET_CPU;
@@ -207,7 +209,7 @@ namespace wdr
       {
         for (int k = 0; k < matset->size(); k++)
           flushBPU(matset->at(k), true);
-        *dev == DEVICE::NET_BPU;
+        *dev = DEVICE::NET_BPU;
       }
     }
 
@@ -218,7 +220,7 @@ namespace wdr
       {
         for (int k = 0; k < matset->size(); k++)
           flushBPU(matset->at(k), false);
-        *dev == DEVICE::NET_CPU;
+        *dev = DEVICE::NET_CPU;
       }
     }
 

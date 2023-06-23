@@ -180,14 +180,21 @@ namespace wdr
       }
     }
 
-    void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape)
+    void alignMemory(const unsigned char *src, const TensorSize &srcshape, unsigned char *dst, TensorSize &dstshape, int elementsize)
     {
+      CV_Error(cv::Error::StsAssert, "alignMemory exists bugs and is currently not supported for use.");
       if (srcshape <= dstshape)
       {
+        // LOG(INFO) << "srcshape <= dstshape";
         int low1 = srcshape[0], low2 = srcshape[1], low3 = srcshape[2], low4 = srcshape[3];
         int high1 = dstshape[0], high2 = dstshape[1], high3 = dstshape[2], high4 = dstshape[3];
         int e1 = high1 - low1, e2 = high2 - low2, e3 = high3 - low3, e4 = high4 - low4;
 
+        LOG(INFO) << "low1: " << low1 << ", low2: " << low2 << ", low3: " << low3 << ", low4: " << low4;
+        LOG(INFO) << "e1: " << e1 << ", e2: " << e2 << ", e3: " << e3 << ", e4: " << e4;
+        LOG(INFO) << "high1: " << high1 << ", high2: " << high2 << ", high3: " << high3 << ", high4: " << high4;
+        // int countsrc = 0, countdst = 0;
+        // memset(dst, 0, high1 * high2 * high3 * high4);
         for (int i1 = 0; i1 < low1; i1++)
         {
           for (int i2 = 0; i2 < low2; i2++)
@@ -195,13 +202,23 @@ namespace wdr
             for (int i3 = 0; i3 < low3; i3++)
             {
               for (int i4 = 0; i4 < low4; i4++)
-                *(dst++) = *(src++);
-              dst += e4 * high4;
+              {
+                *dst = *src;
+                dst++, src++;
+                // *(dst++) = *(src++);
+                // countsrc++, countdst++;
+                // LOG(INFO) << "[" << i1 << "," << i2 << "," << i3 << "," << i4 << "]: " << countsrc << ", " << countdst;
+              }
+              dst += e4;
+              // countdst += e4;
             }
-            dst += e3 * (high3 * high4);
+            dst += e3 * (high4);
+            // countdst += e3 * (high4);
           }
-          dst += e2 * (high2 * high3 * high4);
+          dst += e2 * (high3 * high4);
+          // countdst += e2 * (high3 * high4);
         }
+        // LOG(INFO) << "finish";
       }
       else if (srcshape >= dstshape)
       {
@@ -217,11 +234,11 @@ namespace wdr
             {
               for (int i4 = 0; i4 < low4; i4++)
                 *(dst++) = *(src++);
-              src += e4 * high4;
+              src += e4;
             }
-            src += e3 * (high3 * high4);
+            src += e3 * (high4);
           }
-          src += e2 * (high2 * high3 * high4);
+          src += e2 * (high3 * high4);
         }
       }
       else
@@ -271,12 +288,17 @@ namespace wdr
         if (src.rows() > 0 && src.cols() > 0 && property.tensorLayout != HB_DNN_LAYOUT_NHWC)
           hwc_to_chw(src, tmp);
         else
+        {
+          LOG(INFO) << "tmp = src.getMat();";
           tmp = src.getMat();
+        }
+
         if (tmp.isContinuous())
           mat = tmp;
         else
           tmp.copyTo(mat);
       }
+      // LOG(INFO) << "finish mat:" << mat.total();
 
       // 2. 提取输入src， Tensor的维度
       TensorSize srcshape, validshape, alignedshape;
@@ -286,6 +308,7 @@ namespace wdr
         srcshape.insert(0, 1);
 
       shape(property, validshape, false), shape(property, alignedshape, true);
+      // LOG(INFO) << "srcshape: " << srcshape << ", validshape: " << validshape << ", alignedshape: " << alignedshape;
       int alignedByteSize = property.alignedByteSize;
 
       if (cvmatByteSize == alignedByteSize) // 3 如果字节数一样，检查下对齐shape是否匹配，如果匹配则直接赋值，否则报错。
@@ -304,9 +327,16 @@ namespace wdr
       }
       else if (cvmatByteSize < alignedByteSize) // 4. 若字节数不一样，检查下是否与valid匹配，匹配则做好对齐赋值，否则报错
       {
-        if (srcshape == validshape)
+        if (srcshape == alignedshape)
         {
-          alignMemory(mat.data, srcshape, (unsigned char *)dst.sysMem[0].virAddr, alignedshape);
+          auto data = dst.sysMem[0].virAddr;
+          memcpy(reinterpret_cast<uint8_t *>(data), mat.data, cvmatByteSize);
+        }
+        else if (srcshape == validshape)
+        {
+          // LOG(INFO) << "aligned needed";
+          alignMemory(mat.data, srcshape, (unsigned char *)dst.sysMem[0].virAddr, alignedshape, 1);
+          // LOG(INFO) << "finish alignMemory";
         }
         else
         {
@@ -403,11 +433,12 @@ namespace wdr
       if (fullsize)
       {
         int dstmemsize = tmp.total() * tmp.elemSize();
+        LOG(INFO) << "fullsize: " << dstmemsize;
         bpuMemcpy(tmp.data, src, dstmemsize, false);
       }
       else
       {
-        alignMemory((unsigned char *)src.sysMem[0].virAddr, alignedshape, tmp.data, validshape);
+        alignMemory((unsigned char *)src.sysMem[0].virAddr, alignedshape, tmp.data, validshape, 1);
       }
     }
 

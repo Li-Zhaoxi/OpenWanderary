@@ -9,9 +9,7 @@ namespace wdr
   namespace BPU
   {
 
-    
-
-    ////////////////////// BpuNets /////////////////
+        ////////////////////// BpuNets /////////////////
     BpuNets::BpuNets()
     {
       if (getuid())
@@ -150,13 +148,13 @@ namespace wdr
       return true;
     }
 
-    void BpuNets::init(int idx, BpuMats &input_mats, BpuMats &output_mats) const
+    void BpuNets::init(int idx, BpuMats &input_mats, BpuMats &output_mats, bool autopadding) const
     {
       if (!this->valid(idx))
         CV_Error(cv::Error::StsOutOfRange, std::to_string(idx) + " is valid, total number is " + std::to_string(this->total()));
 
-      input_mats.create(netinfos[idx].input_infos);
-      output_mats.create(netinfos[idx].output_infos);
+      input_mats.create(netinfos[idx].input_infos, autopadding);
+      output_mats.create(netinfos[idx].output_infos, false);
     }
 
     void BpuNets::forward(int idx, const BpuMats &input_mats, BpuMats &output_mats) const
@@ -164,8 +162,8 @@ namespace wdr
       if (input_mats.device() != DEVICE::NET_BPU)
         CV_Error(cv::Error::StsError, "Input Tensors are not in BPU, Please call input_mats.bpu() before forward().");
 
-      if (output_mats.device() != DEVICE::NET_BPU)
-        CV_Error(cv::Error::StsError, "Output Tensors are not in BPU, Please call input_mats.bpu() before forward().");
+      // if (output_mats.device() != DEVICE::NET_BPU)
+      //   CV_Error(cv::Error::StsError, "Output Tensors are not in BPU, Please call input_mats.bpu() before forward().");
 
       std::string errmsg;
       if (!checkTensorProperties(idx, input_mats, true, errmsg))

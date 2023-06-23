@@ -5,6 +5,7 @@
 #include <gflags/gflags.h>
 #include <boost/filesystem.hpp>
 
+#include <Core/core.h>
 #include <BPU/bpu.h>
 
 DEFINE_string(binpath, "", "");
@@ -24,6 +25,8 @@ int main(int argc, char **argv)
   FLAGS_alsologtostderr = 1;
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
+
+  wdr::RootRequired();
 
   boost::filesystem::path binpath(FLAGS_binpath);
   std::string mode = FLAGS_mode;

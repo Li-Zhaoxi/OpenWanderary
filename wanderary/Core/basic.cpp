@@ -4,13 +4,15 @@
 namespace wdr
 {
 
+  
+
   void RootRequired()
   {
     if (getuid())
       CV_Error(cv::Error::StsError, "You must use ROOT or SUDO to use these BPU functions.");
   }
 
-  void get_rgb_image(const std::string &imgpath, cv::Mat &img)
+    void get_rgb_image(const std::string &imgpath, cv::Mat &img)
   {
     cv::Mat imgC = cv::imread(imgpath);
     if (imgC.channels() == 1)
@@ -47,6 +49,24 @@ namespace wdr
     }
 
     return shapes;
+  }
+
+  std::vector<int> shape(const cv::Mat &mat)
+  {
+    std::vector<int> res;
+    if (mat.rows > 0)
+    {
+      for (int k = 0; k < mat.size.dims(); k++)
+        res.push_back(mat.size[k]);
+    }
+    else
+    {
+      res.push_back(mat.rows);
+      res.push_back(mat.cols);
+      if (mat.channels() > 1)
+        res.push_back(mat.channels());
+    }
+    return res;
   }
 
   void imequalresize(const cv::Mat &img, const cv::Size &target_size, const cv::Scalar &pad_value, cv::Mat &pad_image)

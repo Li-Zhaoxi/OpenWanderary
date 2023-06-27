@@ -1,7 +1,7 @@
 
 
 file (GLOB HEADERS "*.h")
-file (GLOB SOURCES "[^_]*.cpp")
+file (GLOB SOURCES "[^_]*.cpp") 
 
 
 

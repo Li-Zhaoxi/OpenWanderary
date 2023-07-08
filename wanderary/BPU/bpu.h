@@ -311,6 +311,13 @@ namespace wdr
       inline int size() const; // 返回Tensor矩阵的个数
 
       // 内存交换，CPU<->BPU拷贝
+      // 内存状态检查：
+      // 检测到矩阵有数据输入，则更换CPU模式
+      // 调用forward之后，
+      // 检测到矩阵有数据输出，则确定模式为CPU更换为CPU模式
+      // 参考上车下车模式，
+      // 若数据被输入，则输入后，模式更换为cpu
+      // 若数据被输出，则输出后，
       void bpu();                   // 数据移到BPU
       void cpu();                   // 数据移到CPU
       inline DEVICE device() const; // 返回当前设备名

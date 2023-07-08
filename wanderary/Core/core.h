@@ -73,6 +73,25 @@ namespace wdr
   void chw_to_hwc(cv::InputArray src, cv::OutputArray dst);
   void makeContinuous(const cv::Mat &src, cv::Mat &dst);
 
+  template <typename T>
+  inline T fast_exp(T x)
+  {
+    union
+    {
+      uint32_t i;
+      T f;
+    } v{};
+    v.i = (1 << 23) * (1.4426950409 * x + 126.93490512f);
+    return v.f;
+  }
+
+  template <typename T>
+  void sigmode(T *_data, int num)
+  {
+    for (int i = 0; i < num; i++, _data++)
+      *_data = T(1.0) / (T(1.0) + fast_exp(-*_data));
+  }
+
 }
 
 #endif

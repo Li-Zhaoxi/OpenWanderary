@@ -26,6 +26,7 @@ namespace wdr
     TrackerDCMT(const DCMTConfigs &config, const std::string &modelpath, const std::string &modelname);
     void init(const cv::Mat &im, const cv::Rect &target);
     void update(const cv::Mat &x_crops, float scale_z);
+    void track(const cv::Mat &img);
 
     static void get_subwindow_tracking(const cv::Mat &src, cv::Mat &dst, const cv::Point2f pos, int model_sz, int original_sz);
     static void grids(int score_size, int total_stride, cv::Mat &grid_to_search);
@@ -40,7 +41,7 @@ namespace wdr
     cv::Point2f target_pos{0.0, 0.0}, target_sz{0.0, 0.0};
     cv::Point target_pos_int;
     cv::Mat grid_to_search, window, z_bgr, z_box;
-    float sz_wh{1};
+    float sz_wh{1}, d_search;
 
     // BPU推理变量
     BPU::BpuNets nets;

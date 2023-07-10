@@ -4,6 +4,8 @@ bin/
 examples/modules
 __pycache__
 
+!projects/torchdnn/demos/DCMT/lib
 *.bin
 projects/torchdnn/data/unet
 projects/torchdnn/data/yolov5
+projects/torchdnn/data/dcmt

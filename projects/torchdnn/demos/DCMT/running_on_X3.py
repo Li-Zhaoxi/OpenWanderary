@@ -52,10 +52,10 @@ def parse_args():
     )
     args = parser.parse_args()
     # args.init_rect = [1138, 200, 96, 150]  # ManRunning2
-    # args.init_rect = [653, 221, 55, 40]  # ChasingDrones
+    args.init_rect = [653, 221, 55, 40]  # ChasingDrones
     # args.init_rect = [132, 244, 69, 136]  # StreetBasketball3
     # args.init_rect = [666, 12, 29, 24]  # Gull2
-    args.init_rect = [577, 826, 42, 42]
+    # args.init_rect = [577, 826, 42, 42]
     return args
 
 

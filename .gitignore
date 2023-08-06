@@ -9,3 +9,5 @@ __pycache__
 projects/torchdnn/data/unet
 projects/torchdnn/data/yolov5
 projects/torchdnn/data/dcmt
+
+examples/MIPI/data

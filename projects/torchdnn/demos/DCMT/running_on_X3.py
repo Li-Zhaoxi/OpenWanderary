@@ -52,9 +52,10 @@ def parse_args():
     )
     args = parser.parse_args()
     # args.init_rect = [1138, 200, 96, 150]  # ManRunning2
-    args.init_rect = [653, 221, 55, 40]  # ChasingDrones
+    # args.init_rect = [653, 221, 55, 40]  # ChasingDrones
     # args.init_rect = [132, 244, 69, 136]  # StreetBasketball3
     # args.init_rect = [666, 12, 29, 24]  # Gull2
+    args.init_rect = [577, 826, 42, 42]
     return args
 
 
@@ -80,7 +81,7 @@ def track(inputs):
             writer = cv2.VideoWriter(
                 videopath,
                 cv2.VideoWriter_fourcc(*"mp4v"),
-                30,
+                10,
                 (im.shape[1], im.shape[0]),
             )
             # initialize video tracker
@@ -120,6 +121,30 @@ def track(inputs):
                 (bbox[0] + bbox[2], bbox[1] + bbox[3]),
                 (0, 255, 0),
                 3,
+            )
+            cv2.putText(
+                im,
+                f"Method: MCMT, running on RDK X3.",
+                (10, 30),
+                cv2.FONT_HERSHEY_COMPLEX,
+                1,
+                (0, 0, 255),
+            )
+            cv2.putText(
+                im,
+                f"Whole time-consumption:{(t2 - t1) * 1000 / cv2.getTickFrequency():.2f} ms.",
+                (10, 60),
+                cv2.FONT_HERSHEY_COMPLEX,
+                1,
+                (0, 0, 255),
+            )
+            cv2.putText(
+                im,
+                f"Forward time-consumption: {state['infertime']:.2f} ms",
+                (10, 90),
+                cv2.FONT_HERSHEY_COMPLEX,
+                1,
+                (0, 0, 255),
             )
             writer.write(im)
             # im_nv12 = bgr2nv12_opencv(im)

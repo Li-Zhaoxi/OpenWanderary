@@ -75,7 +75,7 @@ class DCMT_deploy(object):
         x_bgr = np.expand_dims(x_crop, axis=0)
         # x_bgr = x_bgr.astype(np.uint8)
 
-        target_pos, target_sz, _ = self.update(net, x_bgr, target_pos, target_sz * scale_z, window, scale_z, p)
+        target_pos, target_sz, _, usage_time = self.update(net, x_bgr, target_pos, target_sz * scale_z, window, scale_z, p)
         target_pos[0] = max(0, min(state['im_w'], target_pos[0]))
         target_pos[1] = max(0, min(state['im_h'], target_pos[1]))
         target_sz[0] = max(10, min(state['im_w'], target_sz[0]))
@@ -83,12 +83,17 @@ class DCMT_deploy(object):
         state['target_pos'] = target_pos
         state['target_sz'] = target_sz
         state['p'] = p
+        state['infertime'] = usage_time
 
         return state
 
     def update(self, net, x_crops, target_pos, target_sz, window, scale_z, p, debug=False):
-
+        
+        t1 = cv2.getTickCount()
         cls_score, bbox_pred = net.track(x_crops)
+        t2 = cv2.getTickCount()
+        usage_time = (t2 - t1) * 1000 / cv2.getTickFrequency()
+        
         cls_score = self.sigmoid(cls_score.squeeze())
         bbox_pred = bbox_pred.squeeze()
 
@@ -139,7 +144,7 @@ class DCMT_deploy(object):
 
         target_pos = np.array([res_xs, res_ys])
         target_sz = target_sz * (1 - lr) + lr * np.array([res_w, res_h])
-        return target_pos, target_sz, cls_score[r_max, c_max]
+        return target_pos, target_sz, cls_score[r_max, c_max], usage_time
 
     def grids(self, p):
         """

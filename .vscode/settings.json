@@ -72,7 +72,12 @@
     "any": "cpp",
     "forward_list": "cpp",
     "valarray": "cpp",
-    "*.ipp": "cpp"
+    "*.ipp": "cpp",
+    "dense": "cpp",
+    "core": "cpp",
+    "eigenvalues": "cpp",
+    "geometry": "cpp",
+    "eigen": "cpp"
   },
   "cmake.clearOutputBeforeBuild": false,
   "cmake.ctest.parallelJobs": 4,

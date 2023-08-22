@@ -92,6 +92,14 @@ namespace wdr
       *_data = T(1.0) / (T(1.0) + fast_exp(-*_data));
   }
 
+  template <typename T>
+  inline T sigmode(T data)
+  {
+    return T(1.0) / (T(1.0) + fast_exp(-data));
+  }
+
+  void hanning(int M, cv::OutputArray dst, int depth);
+
 }
 
 #endif

@@ -129,6 +129,8 @@ namespace wdr
     void BpuMat::copyFrom(cv::InputArray cvmat)
     {
       CV_Assert(!empty());
+      if (this->device() != DEVICE::NET_CPU)
+        CV_Error(cv::Error::StsError, "Output Tensors are not in CPU, Please call input_mats.cpu() before this function.");
       const auto &property = properties->infos[idxtensor];
 
       wdr::BPU::bpuMemcpy(cvmat, matset->at(idxtensor), false);
@@ -137,8 +139,32 @@ namespace wdr
     void BpuMat::copyTo(cv::OutputArray cvmat, bool aligned) const
     {
       CV_Assert(!empty());
+      if (this->device() != DEVICE::NET_CPU)
+        CV_Error(cv::Error::StsError, "Output Tensors are not in CPU, Please call input_mats.cpu() before this function.");
 
       bpuMemcpy(matset->at(idxtensor), cvmat, aligned, false);
+    }
+
+    void BpuMat::bpu()
+    {
+      CV_Assert(devs != nullptr && !empty());
+      auto &dev = devs->at(idxtensor);
+      if (dev == DEVICE::NET_CPU)
+      {
+        flushBPU(matset->at(idxtensor), true);
+        dev = DEVICE::NET_BPU;
+      }
+    }
+
+    void BpuMat::cpu()
+    {
+      CV_Assert(devs != nullptr && !empty());
+      auto &dev = devs->at(idxtensor);
+      if (dev == DEVICE::NET_BPU)
+      {
+        flushBPU(matset->at(idxtensor), false);
+        dev = DEVICE::NET_CPU;
+      }
     }
 
     ////////////////////////////// BpuMats //////////////////////////////
@@ -147,7 +173,7 @@ namespace wdr
       range = cv::Range(0, 0);
       matset = nullptr;
       properties = nullptr;
-      dev = nullptr;
+      devs = nullptr;
     }
 
     BpuMats::~BpuMats()
@@ -158,8 +184,8 @@ namespace wdr
     void BpuMats::release()
     {
       range = cv::Range(0, 0);
-      matset.reset(), properties.reset(), dev.reset();
-      matset = nullptr, properties = nullptr, dev = nullptr;
+      matset.reset(), properties.reset(), devs.reset();
+      matset = nullptr, properties = nullptr, devs = nullptr;
     }
 
     void BpuMats::create(const NetIOInfo &infos, bool autopadding)
@@ -172,8 +198,9 @@ namespace wdr
 
       range.start = 0, range.end = range.start + num;
 
-      dev = std::make_shared<DEVICE>();
-      *dev = DEVICE::NET_CPU;
+      devs = std::make_shared<std::vector<DEVICE>>();
+      for (auto &dev : *devs)
+        dev = DEVICE::NET_CPU;
     }
 
     BpuMats BpuMats::operator()(cv::Range &_range) const
@@ -191,12 +218,11 @@ namespace wdr
     BpuMat BpuMats::operator[](int idx) const
     {
       CV_Assert(idx >= 0 && range.start + idx < range.end);
-      if (this->device() != DEVICE::NET_CPU)
-        CV_Error(cv::Error::StsError, "Output Tensors are not in CPU, Please call input_mats.cpu() before this function.");
 
       BpuMat res;
       res.properties = this->properties;
       res.matset = this->matset;
+      res.devs = this->devs;
       res.idxtensor = range.start + idx;
       res.update();
       return res;
@@ -204,24 +230,43 @@ namespace wdr
 
     void BpuMats::bpu()
     {
-      CV_Assert(dev != nullptr);
-      if (*dev == DEVICE::NET_CPU)
+      CV_Assert(devs != nullptr);
+      for (int r = range.start, idx = 0; r < range.end; r++, idx++)
       {
-        for (int k = 0; k < matset->size(); k++)
-          flushBPU(matset->at(k), true);
-        *dev = DEVICE::NET_BPU;
+        auto &dev = devs->at(r);
+        if (dev == DEVICE::NET_CPU)
+        {
+          this->operator[](idx).bpu();
+        }
       }
+      // for (int k = 0; k < matset->size(); k++)
+      //   matset->at(k).bpu();
+      // CV_Assert(dev != nullptr);
+      // if (*dev == DEVICE::NET_CPU)
+      // {
+      //   for (int k = 0; k < matset->size(); k++)
+      //     flushBPU(matset->at(k), true);
+      //   *dev = DEVICE::NET_BPU;
+      // }
     }
 
     void BpuMats::cpu()
     {
-      CV_Assert(dev != nullptr);
-      if (*dev == DEVICE::NET_BPU)
+      CV_Assert(devs != nullptr);
+      for (int r = range.start, idx = 0; r < range.end; r++, idx++)
       {
-        for (int k = 0; k < matset->size(); k++)
-          flushBPU(matset->at(k), false);
-        *dev = DEVICE::NET_CPU;
+        auto &dev = devs->at(r);
+        if (dev == DEVICE::NET_BPU)
+        {
+          this->operator[](idx).cpu();
+        }
       }
+      // if (*dev == DEVICE::NET_BPU)
+      // {
+      //   for (int k = 0; k < matset->size(); k++)
+      //     flushBPU(matset->at(k), false);
+      //   *dev = DEVICE::NET_CPU;
+      // }
     }
 
   } // end BPU

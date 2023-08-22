@@ -3,37 +3,6 @@
 namespace wdr
 {
 
-  void TrackerDCMT::get_bbox(int s_z, int exemplar_size, const cv::Size2f &target_sz, cv::Rect2f &bbox)
-  {
-    float scale_z, w, h;
-    // map the GT bounding box in the first frame to template (127*127)
-    scale_z = float(exemplar_size) / s_z;
-    w = target_sz.width * scale_z, h = target_sz.height * scale_z;
-
-    int cx = exemplar_size / 2, cy = exemplar_size / 2;
-
-    bbox.x = cx - w * 0.5f;
-    bbox.y = cy - h * 0.5f;
-    bbox.width = w, bbox.height = h;
-  }
-
-  void TrackerDCMT::grids(int score_size, int total_stride, cv::Mat &grid_to_search)
-  {
-    const int sz = score_size, total = score_size * score_size; // 18
-
-    grid_to_search.create(total, 2, CV_32FC1);
-    float *_grid_to_search = (float *)grid_to_search.data;
-    for (int i = 0; i < sz; i++)
-    {
-      int idxi = i * sz;
-      for (int j = 0; j < sz; j++)
-      {
-        int idx = (idxi + j) * 2;
-        _grid_to_search[idx] = j * total_stride;
-        _grid_to_search[idx + 1] = i * total_stride;
-      }
-    }
-  }
   // void TrackerDCMT::grids(int score_size, int total_stride, std::vector<cv::Point2f> &grid_to_search)
   // {
   //   const int sz = score_size, total = score_size * score_size; // 18
@@ -83,154 +52,145 @@ namespace wdr
   TrackerDCMT::TrackerDCMT(const DCMTConfigs &config, const std::string &modelpath, const std::string &modelname)
   {
     this->config = config;
-    score_size = int(config.instance_size * 1.0f / config.total_stride + 0.5f);
 
-    // 加载BPU网络并初始化参数
+    this->initBPU(modelpath, modelname);
+    this->reset();
+  }
+
+  void TrackerDCMT::initBPU(const std::string &modelpath, const std::string &modelname)
+  {
     nets.readNets({modelpath});
-    int idxnet = nets.name2index(modelname);
-    std::string modelname = nets.index2name(idxnet);
+    idxnet = nets.name2index(modelname);
     LOG(INFO) << "DCMT [" << modelname << "] at " << idxnet << " has been loaded.";
+
     nets.init(idxnet, input_mats, output_mats, true);
     LOG(INFO) << "input tensor num: " << input_mats.size() << ", output tensor num: " << output_mats.size();
 
-    // 变量初始化
-    shape_cls = output_mats[0].size();
-    // backbone_model_size - init_model_size = 288-127
-    float d_search = (config.instance_size - config.exemplar_size) / 2;
-
-    grids(score_size, config.total_stride, grid_to_search);
+    outsize = output_mats[0].size();
   }
 
-  void TrackerDCMT::init(const cv::Mat &im, const cv::Rect &target)
+  void TrackerDCMT::reset()
   {
-    this->ori_img = im.size();
-    this->target_sz.x = target.width, this->target_sz.y = target.height;
-    this->target_pos.x = target.x + target.width / 2.0f;
-    this->target_pos.y = target.y + target.height / 2.0f;
+    // 初始化Anchor
+    wdr::grids(outsize, anchorx, anchory);
+    anchorx = anchorx * config.total_stride + config.instance_size / 2;
+    anchory = anchory * config.total_stride + config.instance_size / 2;
 
-    // 对模板图像而言：在第一帧以s_z为边长，以目标中心为中心点，截取图像补丁（如果超出第一帧的尺寸，用均值填充）。之后将其resize为127x127x3.成为模板图像
-    // context = 1/2 * (w+h) = 2*pad
-    float wc_z = target_sz.x + config.context_amount * (target_sz.x + target_sz.y);
-    float hc_z = target_sz.y + config.context_amount * (target_sz.x + target_sz.y);
+    // 更新dsearch: backbone_model_size - init_model_size = 288-127
+    d_search = (float(config.instance_size) - config.exemplar_size) / 2;
 
-    // 计算sz_wh
-    float pad = (target_sz.x + target_sz.y) * 0.5f;
-    sz_wh = std::sqrt((target_sz.x + pad) * (target_sz.y + pad));
+    // 初始化window
+    cv::Mat hr, hc;
+    wdr::hanning(outsize.height, hr, CV_32F);
+    wdr::hanning(outsize.width, hc, CV_32F);
+    window = hr * hc.t();
+  }
 
-    // z_crop size = sqrt((w+2p)*(h+2p))
-    int s_z = int(sqrt(wc_z * hc_z) + 0.5); // orignal size
-
-    cv::Mat z_crop;
-    get_subwindow_tracking(im, z_crop, target_pos, config.exemplar_size, s_z);
-    if (z_crop.isContinuous())
-      z_bgr = z_crop;
+  void TrackerDCMT::set_target(const cv::Rect2f &target, bool center)
+  {
+    if (center)
+      this->target_pos.x = target.x, this->target_pos.y = target.y;
     else
-      z_crop.copyTo(z_bgr);
+    {
+      this->target_pos.x = target.x + target.width / 2.0f;
+      this->target_pos.y = target.y + target.height / 2.0f;
+    }
 
-    cv::Rect2f _zbbox;
-    get_bbox(s_z, config.exemplar_size, cv::Size2f(wc_z, hc_z), _zbbox);
-    z_box.create(4, 1, CV_32FC1);
-    z_box.at<float>(0) = _zbbox.x, z_box.at<float>(1) = _zbbox.y;
-    z_box.at<float>(2) = _zbbox.x + _zbbox.width, z_box.at<float>(3) = _zbbox.y + _zbbox.height;
+    this->target_size.width = target.width;
+    this->target_size.height = target.height;
+  }
 
-    cv::Mat hanning = cv::Mat::zeros(score_size, 1, CV_32FC1);
-    float *_hanning = (float *)hanning.data;
-    for (int i = 0; i < score_size; i++)
-      _hanning[i] = 0.5f - 0.5f * std::cos(2 * 3.1415926535898f * i / (score_size - 1));
-    window = hanning * hanning.t();
+  cv::Rect2f TrackerDCMT::get_target() const
+  {
+    cv::Rect2f res;
+    res.x = target_pos.x - target_size.width / 2;
+    res.y = target_pos.y - target_size.height / 2;
+
+    res.width = target_size.width, res.height = target_size.height;
+    return res;
+  }
+
+  void TrackerDCMT::init(const cv::Mat &im, const cv::Rect2f &target)
+  {
+    set_target(target, false);
+
+    // 构建Crop
+    // 对模板图像而言：在第一帧以s_z为边长，以目标中心为中心点，截取图像补丁（如果超出第一帧的尺寸，用均值填充）。
+    // 之后将其resize为127x127x3.成为模板图像
+    cv::Mat z_bgr;
+    float s_zf;
+    {
+      cv::Rect2f tgtf(target.x, target.y, target.width, target.height);
+      s_zf = wdr::calTargetLength(tgtf.size(), config.context_amount); // 计算模板边长
+      // 从原图中提取网络输入的ROI，并resize
+      wdr::get_subwindow_tracking(im, z_bgr,
+                                  cv::Rect2f(target_pos.x, target_pos.y, s_zf, s_zf), true,
+                                  cv::Size(config.exemplar_size, config.exemplar_size));
+    }
+
+    // 构建z_box
+    cv::Mat z_box(4, 1, CV_32FC1);
+    {
+      cv::Rect2f _zbbox = wdr::estRectInCrop(s_zf, config.exemplar_size, this->target_size);
+      z_box.at<float>(0) = _zbbox.x, z_box.at<float>(1) = _zbbox.y;
+      z_box.at<float>(2) = _zbbox.x + _zbbox.width, z_box.at<float>(3) = _zbbox.y + _zbbox.height;
+    }
 
     // 上传z_bgr和z_box到BPU
-    input_mats[1] << z_bgr, input_mats[2] << z_box;
-  }
+    wdr::BPU::BpuMat bpu_z_bgr = input_mats[1];
+    bpu_z_bgr << z_bgr, bpu_z_bgr.bpu();
 
-  void TrackerDCMT::update(const cv::Mat &x_crops, float scale_z)
-  {
-    cv::Mat _cls_score, _bbox_pred;
-    input_mats[0] << x_crops;
-    nets.forward(idxnet, input_mats, output_mats);
-    output_mats.cpu();
-    output_mats[0] >> _cls_score, output_mats[1] >> _bbox_pred;
-
-    CV_Assert(_cls_score.depth() == CV_32F && _bbox_pred.depth() == CV_32F);
-    // CV_Assert(_bbox_pred)
-
-    // _cls_score维度：[1x1x31x31], _bbox_pred维度：[1x4x31x31]
-    cv::Mat cls_score, bbox_pred;
-    cv::Mat(shape_cls.height * shape_cls.width, 1, CV_32FC1, _cls_score.data).copyTo(cls_score);
-    wdr::sigmode((float *)cls_score.data, cls_score.total()); // 31x31
-
-    cv::Mat pred1 = grid_to_search - cv::Mat(2, cls_score.total(), CV_32FC1, _bbox_pred.data).t();
-    cv::Mat pred2 = grid_to_search - cv::Mat(2, cls_score.total(), CV_32FC1, _bbox_pred.data + cls_score.total() * _bbox_pred.elemSize1()).t(); // 注意elemSize1和注意elemSize的区别，前面的一些代码要修改
-
-    cv::Mat wh = pred2 - pred1, s_c, r_c;
-    cv::Mat pad = (wh.col(0) + wh.col(1)) / 2.0f;
-    cv::sqrt(((wh.col(0) + pad) * (wh.col(1) + pad)) / sz_wh, s_c);
-
-    float ratio = target_sz.x / target_sz.y;
-    cv::Mat t = ratio / wh.col(0) / wh.col(1);
-    cv::max(t, 1.0f / t, r_c);
-
-    cv::Mat penalty;
-    cv::exp((1 - s_c.mul(r_c)) * config.penalty_tk, penalty);
-
-    cv::Mat pscore = penalty.mul(cls_score) * (1 - config.window_influence) + window * config.window_influence;
-    double maxScore = 0;
-    int idxmaxl;
-    cv::minMaxIdx(pscore, nullptr, &maxScore, nullptr, &idxmaxl);
-    int r_max, c_max;
-    r_max = idxmaxl / shape_cls.width, c_max = idxmaxl % shape_cls.width; // 这里存疑，需要验证
-
-    float pred_x1_real, pred_y1_real, pred_x2_real, pred_y2_real;
-    pred_x1_real = pred1.at<float>(idxmaxl, 0);
-    pred_y1_real = pred1.at<float>(idxmaxl, 1);
-    pred_x2_real = pred2.at<float>(idxmaxl, 0);
-    pred_y2_real = pred2.at<float>(idxmaxl, 1);
-
-    float pred_xs, pred_ys, pred_w, pred_h, diff_xs, diff_ys;
-    pred_xs = (pred_x1_real + pred_x2_real) / 2, pred_ys = (pred_y1_real + pred_y2_real) / 2;
-    pred_w = pred_x2_real - pred_x1_real, pred_h = pred_y2_real - pred_y1_real;
-    diff_xs = pred_xs - config.instance_size / 2, diff_ys = pred_ys - config.instance_size / 2;
-
-    diff_xs /= scale_z, diff_ys /= scale_z, pred_w /= scale_z, pred_h /= scale_z;
-
-    target_sz.x = target_sz.x / scale_z, target_sz.y = target_sz.y / scale_z;
-
-    // size learning rate
-    float lr_ = penalty.at<float>(idxmaxl) * cls_score.at<float>(idxmaxl) * config.lr;
-    // size rate
-    float res_xs, res_ys, res_w, res_h;
-    res_xs = target_pos.x + diff_xs, res_ys = target_pos.y + diff_ys;
-    res_w = pred_w * config.lr + (1 - lr_) * target_sz.x;
-    res_h = pred_h * config.lr + (1 - lr_) * target_sz.y;
-
-    // 这里存疑，看看优化
-    target_pos_int.x = int(res_xs), target_pos_int.y = int(res_ys);
-    target_sz.x = target_sz.x * (1 - lr_) + lr_ * res_w;
-    target_sz.y = target_sz.y * (1 - lr_) + lr_ * res_h;
+    wdr::BPU::BpuMat bpu_z_box = input_mats[2];
+    bpu_z_box << z_box, bpu_z_box.bpu();
   }
 
   void TrackerDCMT::track(const cv::Mat &img)
   {
-    float hc_z, wc_z, s_z, scale_z;
-    hc_z = target_sz.y + config.context_amount * (target_sz.x + target_sz.y);
-    wc_z = target_sz.x + config.context_amount * (target_sz.x + target_sz.y);
-    s_z = sqrt(wc_z * hc_z);              // roi size
-    scale_z = config.exemplar_size / s_z; // 127/
-
-    float pad = d_search / scale_z;
-    float s_x = s_z + 2 * pad;
-
     cv::Mat x_crop;
-    get_subwindow_tracking(img, x_crop, target_pos, config.instance_size, int(s_x));
+    float scale_z;
+    {
+      // 利用当前target估计一个边长
+      float s_z = calTargetLength(target_size, config.context_amount);
 
-    // update
-    target_sz.x = target_sz.x * scale_z;
-    target_sz.y = target_sz.y * scale_z;
+      // 利用边长大小估计实际search大小
+      // 由于已经是方形了，因此主要是估计新的方形边长 s_x
+      scale_z = config.exemplar_size / s_z; // 127/
+      float pad = d_search / scale_z;
+      float s_x = s_z + 2 * pad;
 
-    this->update(x_crop, scale_z);
-    target_pos.x = std::max(0.0f, std::min(img.cols * 1.0f, target_pos.x));
-    target_pos.y = std::max(0.0f, std::min(img.rows * 1.0f, target_pos.y));
-    target_sz.x = float(std::max(10, std::min(img.cols, int(target_sz.x))));
-    target_sz.y = float(std::max(10, std::min(img.rows, int(target_sz.y))));
+      wdr::get_subwindow_tracking(img, x_crop,
+                                  cv::Rect2f(target_pos.x, target_pos.y, s_x, s_x), true,
+                                  cv::Size(config.instance_size, config.instance_size));
+    }
+
+    // 上传数据并进行推理
+    cv::Mat _cls_score, _bbox_pred;
+    {
+      wdr::BPU::BpuMat bpu_crop = input_mats[0];
+      bpu_crop << x_crop, bpu_crop.bpu();
+      nets.forward(idxnet, input_mats, output_mats);
+
+      wdr::BPU::BpuMat _score = output_mats[0], _predbbox = output_mats[1];
+      _score.cpu(), _score >> _cls_score;
+      _predbbox.cpu(), _predbbox >> _bbox_pred;
+    }
+
+    cv::Rect2f res = wdr::estimateTrackRect(anchorx, anchory, window, 
+                                            get_target(), 
+                                            _cls_score, _bbox_pred,
+                                            cv::Point2f(scale_z, scale_z),
+                                            config.penalty_tk,
+                                            config.window_influence,
+                                            config.lr);
+    set_target(res, true);
+    norm_target(img.rows, img.cols);
+  }
+
+  void TrackerDCMT::norm_target(int rows, int cols)
+  {
+    target_pos.x = std::max(0.0f, std::min(cols * 1.0f, target_pos.x));
+    target_pos.y = std::max(0.0f, std::min(rows * 1.0f, target_pos.y));
+    target_size.width = std::max(10.0f, std::min(cols * 1.0f, target_size.width));
+    target_size.height = std::max(10.0f, std::min(rows * 1.0f, target_size.width));
   }
 }

@@ -19,7 +19,7 @@
 
 依赖库安装，可能也有一些没在这里体现，比如glog,gflags等
 ```
-sudo apt-get install libopencv-dev libboost-filesystem1.71-dev
+sudo apt-get install libopencv-dev libboost1.71-all-dev
 ```
 编译代码，内存多可以试试make -j6。交叉编译还没整明白ㄒoㄒ
 ```
@@ -86,3 +86,6 @@ make -j4
 
 # 代码贡献
 欢迎各位多多使用，提提建议，目前代码贡献规范还没建立起来，有问题就直接在issue中提吧，解决不了就把项目发出来调试看看。
+
+
+

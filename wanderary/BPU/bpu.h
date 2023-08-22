@@ -41,6 +41,7 @@ namespace wdr
 
     enum DEVICE
     {
+      NET_CPU_BPU = -1,
       NET_CPU = 0,
       NET_BPU = 1
     };
@@ -235,7 +236,9 @@ namespace wdr
       // 输入一定与某个shape对齐，如果自己做好了padding，则一定有一个是对齐的
 
       // 输出：Padding无法推断，可以利用enum进行推断
-
+      void bpu();                   // 数据移到BPU
+      void cpu();                   // 数据移到CPU
+      inline DEVICE device() const; // 返回当前设备名
     private:
       friend class BpuMats;
       void update();
@@ -245,6 +248,7 @@ namespace wdr
     private:
       int idxtensor{-1};
       std::shared_ptr<NetIOInfo> properties{nullptr};
+      std::shared_ptr<std::vector<DEVICE>> devs{nullptr}; // 关联的Tensor的名字
       std::shared_ptr<std::vector<hbDNNTensor>> matset{nullptr};
     };
 
@@ -300,6 +304,12 @@ namespace wdr
       copyTo(cvmat, false);
     }
 
+    inline DEVICE BpuMat::device() const
+    {
+      CV_Assert(devs != nullptr && !empty());
+      return devs->at(idxtensor);
+    }
+
     //////////////  模型输入管理器 【非线程安全】 /////////////////
     class BpuMats
     {
@@ -318,9 +328,9 @@ namespace wdr
       // 参考上车下车模式，
       // 若数据被输入，则输入后，模式更换为cpu
       // 若数据被输出，则输出后，
-      void bpu();                   // 数据移到BPU
-      void cpu();                   // 数据移到CPU
-      inline DEVICE device() const; // 返回当前设备名
+      void bpu();                          // 数据移到BPU
+      void cpu();                          // 数据移到CPU
+      inline DEVICE device(int idx) const; // 返回当前设备名
 
       // 返回Tenosr序列的子集，共享参数，有时候网络A的输入是网络B的连续一段
       BpuMats operator()(cv::Range &_range) const;
@@ -330,14 +340,15 @@ namespace wdr
 
     private: // 友元接口相关
       friend class BpuNets;
-      void release();                      // 初始化
+      void release();                                        // 初始化
       void create(const NetIOInfo &infos, bool autopadding); // 分配内存
+      inline void end_forwart();                             // 推理结束，设置内存在BPU上
 
     private:
       cv::Range range;
       // 这里使用智能指针，如果有共享，这部分永远不会被释放
       // 有深拷贝需求，在BPUMat自己做好适配
-      std::shared_ptr<DEVICE> dev{nullptr};
+      std::shared_ptr<std::vector<DEVICE>> devs{nullptr};
       std::shared_ptr<NetIOInfo> properties{nullptr};
       std::shared_ptr<std::vector<hbDNNTensor>> matset{nullptr};
     };
@@ -347,10 +358,41 @@ namespace wdr
       return range.end - range.start;
     }
 
-    inline DEVICE BpuMats::device() const
+    inline DEVICE BpuMats::device(int idx) const
     {
-      CV_Assert(dev != nullptr);
-      return *dev;
+      CV_Assert(devs != nullptr);
+      DEVICE res = DEVICE::NET_CPU_BPU;
+      if (idx < 0)
+      {
+        const int num = this->size();
+        if (num > 0)
+        {
+          res = devs->at(range.start);
+          for (int i = 1; i < num; i++)
+          {
+            DEVICE dev = devs->at(range.start + i);
+            if (dev != res)
+            {
+              res = DEVICE::NET_CPU_BPU;
+              break;
+            }
+          }
+        }
+      }
+      else
+      {
+        CV_Assert(range.start + idx < range.end);
+        res = devs->at(range.start + idx);
+      }
+
+      return res;
+    }
+
+    inline void BpuMats::end_forwart()
+    {
+      CV_Assert(devs != nullptr);
+      for (auto &dev : *devs)
+        dev = DEVICE::NET_BPU;
     }
 
     // BpuMats：操作一批Tenosr，保证内存的连续性，所依赖的功能

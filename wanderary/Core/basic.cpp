@@ -4,15 +4,13 @@
 namespace wdr
 {
 
-  
-
   void RootRequired()
   {
     if (getuid())
       CV_Error(cv::Error::StsError, "You must use ROOT or SUDO to use these BPU functions.");
   }
 
-    void get_rgb_image(const std::string &imgpath, cv::Mat &img)
+  void get_rgb_image(const std::string &imgpath, cv::Mat &img)
   {
     cv::Mat imgC = cv::imread(imgpath);
     if (imgC.channels() == 1)
@@ -87,6 +85,37 @@ namespace wdr
 
     int dw = (target_w - new_w) / 2, dh = (target_h - new_h) / 2;
     resize_image.copyTo(pad_image(cv::Rect(dw, dh, new_w, new_h)));
+  }
+
+  template <typename T>
+  void _hanning(T *_d, int M)
+  {
+    const T c = CV_PI / (M - 1);
+
+    for (int i = 0; i < M; i++)
+    {
+      _d[i] = 0.5 + 0.5 * std::cos(c * i);
+    }
+  }
+
+  void hanning(int M, cv::OutputArray dst, int depth)
+  {
+    CV_Assert(depth == CV_32F || depth == CV_64F);
+    cv::Mat mat = dst.getMat();
+    if (M == 0)
+      mat = cv::Mat();
+    else if (M == 1)
+      mat = cv::Mat::ones(1, 1, CV_MAKETYPE(depth, 1));
+    else
+    {
+      mat.create(M, 1, CV_MAKETYPE(depth, 1));
+      if (depth == CV_32F)
+        _hanning<float>((float *)mat.data, M);
+      else if (depth == CV_64F)
+        _hanning<double>((double *)mat.data, M);
+      else
+        CV_Error(cv::Error::StsAssert, "Invalid mat depth: " + std::to_string(depth));
+    }
   }
 
 }

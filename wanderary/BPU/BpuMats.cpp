@@ -129,10 +129,9 @@ namespace wdr
     void BpuMat::copyFrom(cv::InputArray cvmat)
     {
       CV_Assert(!empty());
-      if (this->device() != DEVICE::NET_CPU)
-        CV_Error(cv::Error::StsError, "Output Tensors are not in CPU, Please call input_mats.cpu() before this function.");
+      // if (this->device() != DEVICE::NET_CPU)
+      //   CV_Error(cv::Error::StsError, "Output Tensors are not in CPU, Please call input_mats.cpu() before this function.");
       const auto &property = properties->infos[idxtensor];
-
       wdr::BPU::bpuMemcpy(cvmat, matset->at(idxtensor), false);
     }
 
@@ -199,6 +198,7 @@ namespace wdr
       range.start = 0, range.end = range.start + num;
 
       devs = std::make_shared<std::vector<DEVICE>>();
+      devs->resize(num);
       for (auto &dev : *devs)
         dev = DEVICE::NET_CPU;
     }

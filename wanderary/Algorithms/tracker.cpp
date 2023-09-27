@@ -47,10 +47,13 @@ namespace wdr
       cv::Rect srcroi(context_xmin + left_pad, context_ymin + top_pad, context_xmax - right_pad, context_ymax - bottom_pad);
       srcroi.width = srcroi.width - srcroi.x, srcroi.height = srcroi.height - srcroi.y;
       cv::Rect dstroi(left_pad, top_pad, srcroi.width, srcroi.height);
+      LOG(INFO) << "srcroi: " << srcroi;
+      LOG(INFO) << "dstroi: " << dstroi;
 
       // 初始化
-      imgroi.create(modelsize.height, modelsize.width, CV_MAKETYPE(src.depth(), src.channels()));
-      imgroi.setTo(0);
+      imgroi.create(top_pad + dstroi.height, left_pad + dstroi.width, CV_MAKETYPE(src.depth(), src.channels()));
+      imgroi.setTo(cv::mean(src));
+      LOG(INFO) << "src size: " << src.size() << ", imgroi size: " << imgroi.size();
       src(srcroi).copyTo(imgroi(dstroi));
     }
 
@@ -64,28 +67,36 @@ namespace wdr
     float w = target.width * scale, h = target.height * scale;
 
     cv::Rect2f res;
-    res.x = ldst / 2.0f - w / 2.0f;
-    res.y = ldst / 2.0f - h / 2.0f;
+    // cx, cy = (ldst - 1)
+    res.x = (ldst - 1) / 2.0f - w / 2.0f;
+    res.y = (ldst - 1) / 2.0f - h / 2.0f;
     res.width = w, res.height = h;
     return res;
   }
 
   cv::Rect2f recoverNewBox(const cv::Size2f &crop, const cv::Rect2f &pred,
-                         const cv::Rect2f &src,
-                         const cv::Point2f &scalexy, float lr)
+                           const cv::Rect2f &src,
+                           const cv::Point2f &scalexy, float lr)
   {
     cv::Rect2f newbox;
 
     ////// 估计实际中心点
     // 计算估计的目标框相对于输入目标框的偏差
-    float diff_xs = pred.x - crop.width / 2, diff_ys = pred.y - crop.height / 2;
+    float pred_xs = pred.x + pred.width / 2, pred_ys = pred.y + pred.height / 2;
+    float diff_xs = pred_xs - int(crop.width / 2);
+    float diff_ys = pred_ys - int(crop.height / 2);
     diff_xs /= scalexy.x, diff_ys /= scalexy.y;
-    newbox.x = src.x + diff_xs, newbox.y = src.y + diff_ys;
+
+    float src_cx = src.x + src.width / 2;
+    float src_cy = src.y + src.height / 2;
+    newbox.x = src_cx + diff_xs, newbox.y = src_cy + diff_ys;
 
     ////// 估计实际尺寸（加权）
     newbox.width = src.width * (1 - lr) + pred.width * lr;
     newbox.height = src.height * (1 - lr) + pred.height * lr;
     newbox.width /= scalexy.x, newbox.height /= scalexy.y;
+
+    newbox.x -= newbox.width / 2, newbox.y -= newbox.height / 2;
 
     return newbox;
   }
@@ -106,6 +117,7 @@ namespace wdr
                                const cv::Rect2f &sz_in,
                                const cv::Mat &scores, const cv::Mat &preds,
                                const cv::Point2f &scalexy,
+                               const cv::Size2f &instance_size,
                                float penalty_k,
                                float window_influence,
                                float lr)
@@ -124,6 +136,23 @@ namespace wdr
 
     // 确认维度，确认数据类型，确认内存连续
     const int rows = anchorx.rows, cols = anchorx.cols, total = rows * cols;
+    // dim: 4 [1x1x31x31]" dim: 4 [1x4x31x31]",
+    BPU::TensorSize srcscoresize(wdr::shape(scores), true), dstscoresize({rows, cols}, true);
+    BPU::TensorSize srcbboxsize(wdr::shape(preds), true), dstbboxsize({4, rows, cols}, true);
+
+    if (srcscoresize != dstscoresize)
+    {
+      std::stringstream ss;
+      ss << "Invalid score shape, input score shape: " << srcscoresize << ", dst score shape: " << dstscoresize;
+      CV_Error(cv::Error::StsAssert, ss.str());
+    }
+    if (srcbboxsize != dstbboxsize)
+    {
+      std::stringstream ss;
+      ss << "Invalid pred bbox shape, input pred bbox shape: " << srcbboxsize << ", dst pred bbox shape: " << dstbboxsize;
+      CV_Error(cv::Error::StsAssert, ss.str());
+    }
+    CV_Assert(scores.isContinuous() && preds.isContinuous());
 
     // 预分配所有估计出的框
     std::vector<cv::Rect2f> bboxs(total);
@@ -154,7 +183,7 @@ namespace wdr
           br.x = anchorx + _preds[r + total * 2];
           br.y = anchory + _preds[r + total * 3];
         }
-        cv::Size wh(br.x - lt.x, br.y - lt.y);
+        cv::Size2f wh(br.x - lt.x, br.y - lt.y);
 
         // 2. 估计预测评分
         // 2.1 尺寸/宽高比关联的损失值
@@ -165,32 +194,35 @@ namespace wdr
           float cost_size = fun_rnorm(fun_sz(wh.width, wh.height) / ltar_diag);
           // ratio penalty: 两个框的宽高比的比值
           float cost_ratio = fun_rnorm((wh.width / wh.height / rtar_wh));
-          cost_sr = std::exp(-(cost_size * cost_ratio - 1) * penalty_k);
+          cost_sr = std::exp(-(cost_size * cost_ratio - 1) * penalty_k) * score;
         }
         // 2.2 引入window损失，得到最终评分
         float score_final = cost_sr * (1 - window_influence) + _window[r] * window_influence;
-
         // 结果赋值
         auto &rect = bboxs[r];
         rect.x = lt.x, rect.y = lt.y;
         rect.width = wh.width, rect.height = wh.height;
         _pscore[r] = cost_sr;
         _costs[r] = score_final;
+        // LOG(INFO) << "rect: " << rect;
+        // LOG(INFO) << "_pscore: " << _pscore[r];
+        // LOG(INFO) << "_costs: " << _costs[r];
       }
     };
-    cv::parallel_for_(cv::Range(0, total), fun_cal_bbox);
+    // cv::parallel_for_(cv::Range(0, total), fun_cal_bbox);
+    fun_cal_bbox(cv::Range(0, total));
 
     // 计算最大值
     double max_score = 0;
-    int idx_max = -1;
-    cv::minMaxIdx(costs, nullptr, &max_score, nullptr, &idx_max);
+    int idxs_max[2] = {-1, -1};
+    cv::minMaxIdx(costs, nullptr, &max_score, nullptr, idxs_max);
+    int idx_max = idxs_max[0] * costs.cols + idxs_max[1];
 
     // 还原最终框，预测的实际上是偏差
     cv::Rect2f finalbox = bboxs[idx_max];
     float adapt_lr = _pscore[idx_max] * lr;
 
-    cv::Rect2f predbox = recoverNewBox(cv::Size2f(cols, rows), finalbox, sz_in, scalexy, adapt_lr);
-
+    cv::Rect2f predbox = recoverNewBox(instance_size, finalbox, sz_in, scalexy, adapt_lr);
     return predbox;
   }
 

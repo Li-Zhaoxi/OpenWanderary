@@ -1,5 +1,5 @@
 #include <Core/core.h>
-
+#include <unordered_map>
 namespace wdr
 {
   std::string dtype(cv::InputArray src)
@@ -39,6 +39,31 @@ namespace wdr
       CV_Error(cv::Error::StsAssert, "Invalid type val: " + std::to_string(src.depth()));
 
     return res;
+  }
+
+  std::unordered_map<std::string, int> type_str2int = {
+      {"CV_8U", CV_8U},
+      {"uint8", CV_8U},
+      {"CV_8S", CV_8S},
+      {"int8", CV_8S},
+      {"CV_16U", CV_16U},
+      {"uint16", CV_16U},
+      {"CV_16S", CV_16S},
+      {"int16", CV_16S},
+      {"CV_32S", CV_32S},
+      {"float32", CV_32S},
+      {"CV_64F", CV_64F},
+      {"float64", CV_64F},
+      {"CV_16F", CV_16F},
+      {"float16", CV_16F},
+  };
+
+  int stot(const std::string &strtype)
+  {
+    if (type_str2int.find(strtype) == type_str2int.end())
+      CV_Error(cv::Error::StsAssert, "Invalid type val: " + strtype);
+
+    return type_str2int[strtype];
   }
 
   std::string layout(CV_MAT_LAYOUT lay)

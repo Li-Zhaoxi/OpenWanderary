@@ -1,5 +1,5 @@
 from lib.utils.deploy_helper import print_properties
-
+import numpy as np
 
 class ModelDeploy(object):
     def __init__(self, configs, models):
@@ -9,6 +9,8 @@ class ModelDeploy(object):
         self.stride = configs.MODEL.STRIDE
         self.score_size = round(self.search_size / self.stride)
         self.init_arch(models)
+        
+        self.count = 0
 
     def init_arch(self, model):
         self.inference = model['inference']
@@ -24,4 +26,7 @@ class ModelDeploy(object):
         # print_properties(cls.properties)
         # print('reg feature map:')
         # print_properties(reg.properties)
+        np.savez(f"data/dcmt/debug_infer/infer_{self.count}.npz", input_0 = x, input_1 = self.z, input_2 = self.z_bbox, output_0 = cls.buffer, output_1 = reg.buffer)
+        self.count = self.count + 1
+
         return cls.buffer, reg.buffer

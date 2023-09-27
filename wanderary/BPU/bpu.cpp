@@ -190,9 +190,9 @@ namespace wdr
         int high1 = dstshape[0], high2 = dstshape[1], high3 = dstshape[2], high4 = dstshape[3];
         int e1 = high1 - low1, e2 = high2 - low2, e3 = high3 - low3, e4 = high4 - low4;
 
-        LOG(INFO) << "low1: " << low1 << ", low2: " << low2 << ", low3: " << low3 << ", low4: " << low4;
-        LOG(INFO) << "e1: " << e1 << ", e2: " << e2 << ", e3: " << e3 << ", e4: " << e4;
-        LOG(INFO) << "high1: " << high1 << ", high2: " << high2 << ", high3: " << high3 << ", high4: " << high4;
+        // LOG(INFO) << "low1: " << low1 << ", low2: " << low2 << ", low3: " << low3 << ", low4: " << low4;
+        // LOG(INFO) << "e1: " << e1 << ", e2: " << e2 << ", e3: " << e3 << ", e4: " << e4;
+        // LOG(INFO) << "high1: " << high1 << ", high2: " << high2 << ", high3: " << high3 << ", high4: " << high4;
         // int countsrc = 0, countdst = 0;
         // memset(dst, 0, high1 * high2 * high3 * high4);
         for (int i1 = 0; i1 < low1; i1++)
@@ -282,21 +282,26 @@ namespace wdr
     {
       // 1 保证使用的数据是连续的
       cv::Mat mat;
+      // LOG(INFO) << "debug shape: " << TensorSize(wdr::shape(src.getMat()));
       const auto &property = dst.properties;
       {
-        cv::Mat tmp;
-        if (src.rows() > 0 && src.cols() > 0 && property.tensorLayout != HB_DNN_LAYOUT_NHWC)
-          hwc_to_chw(src, tmp);
+        cv::Mat srcmat = src.getMat(), tmp;
+        // LOG(INFO) << srcmat.rows << ", " << srcmat.cols;
+        if (srcmat.rows > 0 && srcmat.cols > 0 && property.tensorLayout != HB_DNN_LAYOUT_NHWC)
+          hwc_to_chw(srcmat, tmp);
         else
         {
           // LOG(INFO) << "tmp = src.getMat();";
-          tmp = src.getMat();
+          tmp = srcmat;
         }
+        // LOG(INFO) << "debug  tmp shape: " << TensorSize(wdr::shape(tmp));
 
+        // LOG(INFO) << "tmp.isContinuous(): " << tmp.isContinuous();
         if (tmp.isContinuous())
           mat = tmp;
         else
           tmp.copyTo(mat);
+        // LOG(INFO) << "debug shape: " << TensorSize(wdr::shape(mat));
       }
       // LOG(INFO) << "finish mat:" << mat.total();
 
@@ -309,6 +314,7 @@ namespace wdr
 
       shape(property, validshape, false), shape(property, alignedshape, true);
       // LOG(INFO) << "srcshape: " << srcshape << ", validshape: " << validshape << ", alignedshape: " << alignedshape;
+      // LOG(INFO) << "debug shape: " << TensorSize(wdr::shape(mat));
       int alignedByteSize = property.alignedByteSize;
 
       if (cvmatByteSize == alignedByteSize) // 3 如果字节数一样，检查下对齐shape是否匹配，如果匹配则直接赋值，否则报错。
@@ -456,14 +462,15 @@ namespace wdr
       hbDNNInferCtrlParam infer_ctrl_param;
       hbDNNTaskHandle_t task_handle = nullptr;
       HB_DNN_INITIALIZE_INFER_CTRL_PARAM(&infer_ctrl_param);
-
+      // LOG(INFO) << "forward debug 1";
       HB_CHECK_SUCCESS(hbDNNInfer(&task_handle, &_outTensors, _inTensors,
                                   dnn_handle, &infer_ctrl_param),
                        "hbDNNInfer failed");
-
+      // LOG(INFO) << "forward debug 2"
+      // << ", waiting_time: " << waiting_time;
       // wait task done
       HB_CHECK_SUCCESS(hbDNNWaitTaskDone(task_handle, waiting_time), "hbDNNWaitTaskDone failed");
-
+      // LOG(INFO) << "forward debug 3";
       // release task handle
       HB_CHECK_SUCCESS(hbDNNReleaseTask(task_handle), "hbDNNReleaseTask failed");
     }

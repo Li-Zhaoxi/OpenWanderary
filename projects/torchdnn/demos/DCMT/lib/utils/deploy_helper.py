@@ -31,6 +31,8 @@ def get_subwindow_tracking(im, pos, model_sz, original_sz, avg_chans, out_mode="
     context_ymin = context_ymin + top_pad
     context_ymax = context_ymax + top_pad
 
+    
+    
     r, c, k = im.shape
     if any([top_pad, bottom_pad, left_pad, right_pad]):
         te_im = np.zeros(
@@ -60,7 +62,6 @@ def get_subwindow_tracking(im, pos, model_sz, original_sz, avg_chans, out_mode="
             int(context_xmin) : int(context_xmax + 1),
             :,
         ]
-
     if not np.array_equal(model_sz, original_sz):
         im_patch = cv2.resize(im_patch_original, (model_sz, model_sz))
     else:

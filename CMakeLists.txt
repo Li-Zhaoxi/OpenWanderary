@@ -24,7 +24,7 @@ set (CMAKE_CXX_STANDARD 17)
 # endif()
 
 find_package(gflags REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 find_package(Boost 1.71.0 REQUIRED)
 find_package(Eigen3 REQUIRED)
 

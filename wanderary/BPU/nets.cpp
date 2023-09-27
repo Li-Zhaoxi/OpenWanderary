@@ -159,24 +159,36 @@ namespace wdr
 
     void BpuNets::forward(int idx, const BpuMats &input_mats, BpuMats &output_mats) const
     {
-      if (input_mats.device(-1) != DEVICE::NET_CPU_BPU)
+      if (input_mats.device(-1) == DEVICE::NET_CPU_BPU)
         CV_Error(cv::Error::StsError, "Input Tensors are not all in BPU, Please call input_mats.bpu() before forward().");
 
       // if (output_mats.device() != DEVICE::NET_BPU)
       //   CV_Error(cv::Error::StsError, "Output Tensors are not in BPU, Please call input_mats.bpu() before forward().");
 
+      // LOG(INFO) << "net debug 1";
       std::string errmsg;
       if (!checkTensorProperties(idx, input_mats, true, errmsg))
         CV_Error(cv::Error::StsOutOfRange, errmsg);
-
+      // LOG(INFO) << "net debug 2";
       if (!checkTensorProperties(idx, output_mats, false, errmsg))
         CV_Error(cv::Error::StsOutOfRange, errmsg);
-
+      // LOG(INFO) << "net debug 3";
       const hbDNNTensor *_inputtensor = input_mats.matset->data() + input_mats.range.start;
       hbDNNTensor *_outputtensor = output_mats.matset->data() + output_mats.range.start;
+      // LOG(INFO) << "in tensor 0: " << _inputtensor[0].properties;
+      // LOG(INFO) << "in tensor 1: " << _inputtensor[1].properties;
+      // LOG(INFO) << "in tensor 2: " << _inputtensor[2].properties;
+      // LOG(INFO) << "out tensor 0: " << _outputtensor[0].properties;
+      // LOG(INFO) << "out tensor 1: " << _outputtensor[1].properties;
+      // LOG(INFO) << "in size: " << input_mats.matset->size() << ", start: " << input_mats.range.start;
+      // LOG(INFO) << "out size: " << output_mats.matset->size() << ", start: " << output_mats.range.start;
+      // LOG(INFO) << "net debug 4";
+      // LOG(INFO) << "idx: " << idx;
+      // LOG(INFO) << "handle: " << netsMap[idx].second << ", name: " << netsMap[idx].first;
       wdr::BPU::forward(netsMap[idx].second, _inputtensor, _outputtensor);
-
+      // LOG(INFO) << "net debug 5";
       output_mats.end_forwart();
+      // LOG(INFO) << "net debug 6";
     }
 
   } // end BPU

@@ -1,6 +1,7 @@
 #ifndef WDR_CORE_H_
 #define WDR_CORE_H_
 
+#include <cnpy/cnpy.h>
 #include <opencv2/opencv.hpp>
 
 namespace wdr
@@ -53,6 +54,7 @@ namespace wdr
 
   // logs.cpp: 记录各种可视化，以及检查项
   std::string dtype(cv::InputArray src);
+  int stot(const std::string &strtype);
   std::string layout(CV_MAT_LAYOUT lay);
   bool MatCheck(const cv::Mat &mat, std::string &errmsg, const std::vector<CV_MAT_LAYOUT> &layouts = {}, int channels = -1, const std::vector<int> &dtypes = {}, bool continuous = false);
 
@@ -63,6 +65,18 @@ namespace wdr
   void get_bgr_image(const std::string &imgpath, cv::Mat &img);
   std::vector<size_t> get_shape(cv::Mat &mat);
   std::vector<int> shape(const cv::Mat &mat);
+
+  template <typename T>
+  std::vector<T> squeeze(const std::vector<T> &dims)
+  {
+    std::vector<T> res;
+    for (auto dim : dims)
+    {
+      if (dim != 1)
+        res.push_back(dim);
+    }
+    return res;
+  }
 
   void imequalresize(const cv::Mat &img, const cv::Size &target_size, const cv::Scalar &pad_value, cv::Mat &pad_image);
 
@@ -95,10 +109,35 @@ namespace wdr
   template <typename T>
   inline T sigmode(T data)
   {
-    return T(1.0) / (T(1.0) + fast_exp(-data));
+    // return T(1.0) / (T(1.0) + fast_exp(-data));
+    return T(1.0) / (T(1.0) + std::exp(-data));
   }
 
+  void numpy2cv(const cnpy::NpyArray &npmat, cv::OutputArray cvmat, int dtype);
+
   void hanning(int M, cv::OutputArray dst, int depth);
+
+  namespace argparse
+  {
+    std::vector<std::string> split(const std::string &strlist, const std::string &strsign);
+  }
+
+  namespace path
+  {
+    bool exist(const std::string &filepath, bool log = false);
+    std::string join(const std::vector<std::string> &filepaths);
+    std::string dirname(const std::string &filepath);
+
+  }
+
+  namespace logs
+  {
+    class Progress
+    {
+    public:
+    private:
+    };
+  }
 
 }
 

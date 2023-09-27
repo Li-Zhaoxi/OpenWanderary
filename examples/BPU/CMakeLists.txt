@@ -14,6 +14,12 @@ target_link_libraries(${BIN}
 ${OpenCV_LIBS}
 openwdr_core openwdr_bpu openwdr_dnn cnpy)
 
+set(BIN infer-dcmt)
+add_executable(${BIN} infer-dcmt.cpp)
+target_link_libraries(${BIN} 
+${OpenCV_LIBS}
+openwdr_core openwdr_bpu openwdr_dnn cnpy openwdr_algorithms)
+
 set(BIN infer-yolov5)
 add_executable(${BIN} infer-yolov5.cpp)
 target_link_libraries(${BIN} 
@@ -25,6 +31,11 @@ set(BIN print-infos)
 add_executable(${BIN} print-infos.cpp)
 target_link_libraries(${BIN} 
 ${OpenCV_LIBS} openwdr_core openwdr_bpu)
+
+set(BIN validate-infer)
+add_executable(${BIN} validate-infer.cpp)
+target_link_libraries(${BIN} 
+${OpenCV_LIBS} openwdr_core openwdr_bpu cnpy)
 
 
 set(BIN infer_unet_standalong)

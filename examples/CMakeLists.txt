@@ -1,5 +1,6 @@
 
 include_directories(
+  ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/wanderary/
   ${CMAKE_SOURCE_DIR}/3rdparty/
 )

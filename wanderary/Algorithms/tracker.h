@@ -26,6 +26,7 @@ namespace wdr
                                const cv::Rect2f &sz_in,
                                const cv::Mat &scores, const cv::Mat &preds,
                                const cv::Point2f &scalexy,
+                               const cv::Size2f &instance_size,
                                float penalty_k = 0.007,
                                float window_influence = 0.225,
                                float lr = 0.616);
@@ -36,13 +37,13 @@ namespace wdr
   // DCMT的代码参考: https://github.com/Z-Xiong/LightTrack-ncnn
   struct DCMTConfigs
   {
-    int total_stride{16};
-    int instance_size{288};
+    int total_stride{8};
+    int instance_size{255};
     float context_amount{0.5f};
     int exemplar_size{127};
-    float penalty_tk{0.007};
-    float window_influence{0.225};
-    float lr{0.616};
+    float penalty_tk{0.077};
+    float window_influence{0.306};
+    float lr{0.45};
   };
 
   class TrackerDCMT
@@ -56,8 +57,10 @@ namespace wdr
     // 跟踪相关
     void init(const cv::Mat &im, const cv::Rect2f &target);
     void track(const cv::Mat &img);
-
+    void track(const cv::Mat &img, const cv::Mat &_cls_score, const cv::Mat &_bbox_pred);
     void update(const cv::Mat &x_crops, float scale_z);
+
+    inline cv::Rect get_rect() const;
 
     static void get_subwindow_tracking(const cv::Mat &src, cv::Mat &dst, const cv::Point2f pos, int model_sz, int original_sz);
     static void get_bbox(int s_z, int exemplar_size, const cv::Size2f &target_sz, cv::Rect2f &bbox);
@@ -77,13 +80,19 @@ namespace wdr
     cv::Mat window;
 
     // 跟踪相关
-    void set_target(const cv::Rect2f &target, bool center = false); // 跟踪框信息
+    void set_target(const cv::Rect2f &target, bool center = false, int offset = -1); // 跟踪框信息
     cv::Rect2f get_target() const;
     void norm_target(int rows, int cols);
     cv::Point2f target_pos{0.0, 0.0}; // 跟踪框中心点
     cv::Size2f target_size{0.0, 0.0}; // 跟踪框尺寸
-
   };
+
+  inline cv::Rect TrackerDCMT::get_rect() const
+  {
+    cv::Rect2f res2f = get_target();
+    return cv::Rect(res2f.x, res2f.y, int(res2f.width + 0.5), int(res2f.height + 0.5));
+  }
+
 }
 
 #endif

@@ -103,9 +103,18 @@ namespace wdr
     {
     public:
       TensorSize() {}
+      TensorSize(const std::vector<int> &_shapes, bool squeeze = false)
+      {
+        create(_shapes, squeeze);
+      }
+      TensorSize(int dimnum, const int *p, bool squeeze = false)
+      {
+        create(dimnum, p, squeeze);
+      }
+      inline TensorSize(cv::InputArray src);
       ~TensorSize() {}
-      inline void create(const std::vector<int> &_shapes); // 利用一段vector创建
-      inline void create(int dimnum, const int *p);
+      inline void create(const std::vector<int> &_shapes, bool squeeze = false); // 利用一段vector创建
+      inline void create(int dimnum, const int *p, bool squeeze = false);
       inline int dims() const;
       inline const int &operator[](int i) const;
       inline int &operator[](int i);
@@ -124,16 +133,38 @@ namespace wdr
       std::vector<int> shapes;
     };
 
-    inline void TensorSize::create(const std::vector<int> &_shapes)
+    inline TensorSize::TensorSize(cv::InputArray src)
     {
-      shapes = _shapes;
+      const cv::Mat mat = src.getMat();
+      if (mat.rows >= 0 && mat.cols >= 0)
+        this->create({mat.rows, mat.cols, mat.channels()}, false);
+      else
+        this->create(mat.size.dims(), mat.size.p, false);
     }
 
-    inline void TensorSize::create(int dimnum, const int *p)
+    inline void TensorSize::create(const std::vector<int> &_shapes, bool squeeze)
     {
-      shapes.resize(dimnum);
-      for (int k = 0; k < dimnum; k++)
-        shapes[k] = p[k];
+      this->create(_shapes.size(), _shapes.data(), squeeze);
+      // shapes = _shapes;
+    }
+
+    inline void TensorSize::create(int dimnum, const int *p, bool squeeze)
+    {
+      if (squeeze)
+      {
+        for (int k = 0; k < dimnum; k++)
+        {
+          int dim = p[k];
+          if (dim != 1)
+            shapes.push_back(dim);
+        }
+      }
+      else
+      {
+        shapes.resize(dimnum);
+        for (int k = 0; k < dimnum; k++)
+          shapes[k] = p[k];
+      }
     }
 
     inline int TensorSize::dims() const
@@ -307,6 +338,7 @@ namespace wdr
     inline DEVICE BpuMat::device() const
     {
       CV_Assert(devs != nullptr && !empty());
+      // LOG(INFO) << "idxtensor: " << idxtensor << ", devs size: " << devs->size();
       return devs->at(idxtensor);
     }
 

@@ -12,7 +12,7 @@ class DCMT_deploy(object):
 
     def init(self, im, target_pos, target_sz, model):
         state = dict()
-
+        
         state['im_h'] = im.shape[0]
         state['im_w'] = im.shape[1]
 
@@ -44,6 +44,9 @@ class DCMT_deploy(object):
         net.template(z_bgr, z_box)
 
         window = np.outer(np.hanning(p.score_size), np.hanning(p.score_size))  # [31, 31]
+        # print(z_bgr.shape)
+        # cv2.imwrite("z_bgr_py.png", z_bgr[0])
+        # exit()
 
         state['p'] = p
         state['net'] = net
@@ -51,7 +54,7 @@ class DCMT_deploy(object):
         state['window'] = window
         state['target_pos'] = target_pos
         state['target_sz'] = target_sz
-
+        
         return state
 
     def track(self, state, im):
@@ -61,7 +64,7 @@ class DCMT_deploy(object):
         window = state['window']
         target_pos = state['target_pos']
         target_sz = state['target_sz']
-
+        
         hc_z = target_sz[1] + p.context_amount * sum(target_sz)
         wc_z = target_sz[0] + p.context_amount * sum(target_sz)
         s_z = np.sqrt(wc_z * hc_z)
@@ -69,17 +72,22 @@ class DCMT_deploy(object):
         d_search = (p.instance_size - p.exemplar_size) / 2  # slightly different from rpn++
         pad = d_search / scale_z
         s_x = s_z + 2 * pad
+        
+        
 
         x_crop, _ = get_subwindow_tracking(im, target_pos, p.instance_size, python2round(s_x), avg_chans)
         state['x_crop'] = copy.deepcopy(x_crop)  # torch float tensor, (3,H,W)
+
         x_bgr = np.expand_dims(x_crop, axis=0)
         # x_bgr = x_bgr.astype(np.uint8)
-
         target_pos, target_sz, _, usage_time = self.update(net, x_bgr, target_pos, target_sz * scale_z, window, scale_z, p)
         target_pos[0] = max(0, min(state['im_w'], target_pos[0]))
         target_pos[1] = max(0, min(state['im_h'], target_pos[1]))
         target_sz[0] = max(10, min(state['im_w'], target_sz[0]))
         target_sz[1] = max(10, min(state['im_h'], target_sz[1]))
+        
+        # print(f"target_pos: {target_pos}, target_sz: {target_sz}")
+        # exit()
         state['target_pos'] = target_pos
         state['target_sz'] = target_sz
         state['p'] = p
@@ -93,7 +101,7 @@ class DCMT_deploy(object):
         cls_score, bbox_pred = net.track(x_crops)
         t2 = cv2.getTickCount()
         usage_time = (t2 - t1) * 1000 / cv2.getTickFrequency()
-        
+
         cls_score = self.sigmoid(cls_score.squeeze())
         bbox_pred = bbox_pred.squeeze()
 
@@ -108,10 +116,9 @@ class DCMT_deploy(object):
 
         penalty = np.exp(-(r_c * s_c - 1) * p.penalty_k)
         pscore = penalty * cls_score
-
         # window penalty
         pscore = pscore * (1 - p.window_influence) + window * p.window_influence
-
+        
         # get max
         r_max, c_max = np.unravel_index(pscore.argmax(), pscore.shape)
 
@@ -135,7 +142,6 @@ class DCMT_deploy(object):
 
         # size learning rate
         lr = penalty[r_max, c_max] * cls_score[r_max, c_max] * p.lr
-
         # size rate
         res_xs = target_pos[0] + diff_xs
         res_ys = target_pos[1] + diff_ys
@@ -143,7 +149,8 @@ class DCMT_deploy(object):
         res_h = pred_h * lr + (1 - lr) * target_sz[1]
 
         target_pos = np.array([res_xs, res_ys])
-        target_sz = target_sz * (1 - lr) + lr * np.array([res_w, res_h])
+        # target_sz = target_sz * (1 - lr) + lr * np.array([res_w, res_h])
+        target_sz = np.array([res_w, res_h])
         return target_pos, target_sz, cls_score[r_max, c_max], usage_time
 
     def grids(self, p):
@@ -161,6 +168,7 @@ class DCMT_deploy(object):
         x, y = np.meshgrid(np.arange(0, sz) - np.floor(float(sz_x)),
                            np.arange(0, sz) - np.floor(float(sz_y)))
 
+        print(p.total_stride, p.instance_size)
         self.grid_to_search_x = x * p.total_stride + p.instance_size // 2
         self.grid_to_search_y = y * p.total_stride + p.instance_size // 2
 

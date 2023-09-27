@@ -52,7 +52,7 @@ namespace wdr
   std::vector<int> shape(const cv::Mat &mat)
   {
     std::vector<int> res;
-    if (mat.rows > 0)
+    if (mat.rows < 0)
     {
       for (int k = 0; k < mat.size.dims(); k++)
         res.push_back(mat.size[k]);
@@ -92,29 +92,34 @@ namespace wdr
   {
     const T c = CV_PI / (M - 1);
 
-    for (int i = 0; i < M; i++)
+    for (int i = 1 - M, k = 0; i < M; i += 2, k++)
     {
-      _d[i] = 0.5 + 0.5 * std::cos(c * i);
+      _d[k] = 0.5 + 0.5 * std::cos(c * i);
     }
   }
 
   void hanning(int M, cv::OutputArray dst, int depth)
   {
     CV_Assert(depth == CV_32F || depth == CV_64F);
-    cv::Mat mat = dst.getMat();
+    // dst.create(src_h, src_w, CV_MAKETYPE(src.depth(), src_c));
+
     if (M == 0)
-      mat = cv::Mat();
-    else if (M == 1)
-      mat = cv::Mat::ones(1, 1, CV_MAKETYPE(depth, 1));
+      dst.clear();
     else
     {
-      mat.create(M, 1, CV_MAKETYPE(depth, 1));
-      if (depth == CV_32F)
-        _hanning<float>((float *)mat.data, M);
-      else if (depth == CV_64F)
-        _hanning<double>((double *)mat.data, M);
+      dst.create(M, 1, CV_MAKETYPE(depth, 1));
+      cv::Mat mat = dst.getMat();
+      if (M == 1)
+        mat = cv::Mat::ones(1, 1, CV_MAKETYPE(depth, 1));
       else
-        CV_Error(cv::Error::StsAssert, "Invalid mat depth: " + std::to_string(depth));
+      {
+        if (depth == CV_32F)
+          _hanning<float>((float *)mat.data, M);
+        else if (depth == CV_64F)
+          _hanning<double>((double *)mat.data, M);
+        else
+          CV_Error(cv::Error::StsAssert, "Invalid mat depth: " + std::to_string(depth));
+      }
     }
   }
 

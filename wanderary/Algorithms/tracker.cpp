@@ -41,19 +41,20 @@ namespace wdr
     {
       cv::Rect roi(context_xmin, context_ymin, context_xmax - context_xmin, context_ymax - context_ymin);
       imgroi = src(roi);
+      // LOG(INFO) << "roi: " << roi;
     }
     else
     {
       cv::Rect srcroi(context_xmin + left_pad, context_ymin + top_pad, context_xmax - right_pad, context_ymax - bottom_pad);
       srcroi.width = srcroi.width - srcroi.x, srcroi.height = srcroi.height - srcroi.y;
       cv::Rect dstroi(left_pad, top_pad, srcroi.width, srcroi.height);
-      LOG(INFO) << "srcroi: " << srcroi;
-      LOG(INFO) << "dstroi: " << dstroi;
+      // LOG(INFO) << "srcroi: " << srcroi;
+      // LOG(INFO) << "dstroi: " << dstroi;
 
       // 初始化
       imgroi.create(top_pad + dstroi.height, left_pad + dstroi.width, CV_MAKETYPE(src.depth(), src.channels()));
       imgroi.setTo(cv::mean(src));
-      LOG(INFO) << "src size: " << src.size() << ", imgroi size: " << imgroi.size();
+      // LOG(INFO) << "src size: " << src.size() << ", imgroi size: " << imgroi.size();
       src(srcroi).copyTo(imgroi(dstroi));
     }
 
@@ -207,10 +208,12 @@ namespace wdr
         // LOG(INFO) << "rect: " << rect;
         // LOG(INFO) << "_pscore: " << _pscore[r];
         // LOG(INFO) << "_costs: " << _costs[r];
+        // LOG(INFO) << "r: " << r << ", cost: " << _costs[r] << ", rect: " << rect;
+        // LOG(INFO) << "r: " << r << ", lt: " << lt << ", br: " << br << ", score: " << wdr::sigmode(_scores[r]) << ", bbox_pred0: " << _preds[r] << ", bbox_pred1: " << _preds[r + total] << ", bbox_pred2: " << _preds[r + total * 2] << ", bbox_pred3: " << _preds[r + total * 3];
       }
     };
-    // cv::parallel_for_(cv::Range(0, total), fun_cal_bbox);
-    fun_cal_bbox(cv::Range(0, total));
+    cv::parallel_for_(cv::Range(0, total), fun_cal_bbox);
+    // fun_cal_bbox(cv::Range(0, total));
 
     // 计算最大值
     double max_score = 0;
@@ -218,11 +221,17 @@ namespace wdr
     cv::minMaxIdx(costs, nullptr, &max_score, nullptr, idxs_max);
     int idx_max = idxs_max[0] * costs.cols + idxs_max[1];
 
+    // LOG(INFO) << "idxs_max: " << cv::Point(idxs_max[0], idxs_max[1]) << ", max_score: " << max_score;
+
     // 还原最终框，预测的实际上是偏差
     cv::Rect2f finalbox = bboxs[idx_max];
     float adapt_lr = _pscore[idx_max] * lr;
 
+    // LOG(INFO) << "instance_size: " << instance_size << ", finalbox: " << finalbox << ", sz_in: " << sz_in << ", scalexy: " << scalexy << ", adapt_lr: " << adapt_lr;
+
     cv::Rect2f predbox = recoverNewBox(instance_size, finalbox, sz_in, scalexy, adapt_lr);
+    // LOG(INFO) << "predbox: " << predbox;
+    // CV_Assert(0);
     return predbox;
   }
 

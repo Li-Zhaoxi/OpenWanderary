@@ -130,7 +130,7 @@ namespace wdr
                                   cv::Rect2f(target_pos.x, target_pos.y, s_zf, s_zf), true,
                                   cv::Size(config.exemplar_size, config.exemplar_size));
     }
-
+    // cv::imwrite("z_bgr.png", z_bgr);
     // 构建z_box, NCHW: [1,4,1,1]
     cv::Mat z_box(1, 1, CV_MAKETYPE(CV_32F, 4));
     {
@@ -139,6 +139,7 @@ namespace wdr
 
       _val[0] = _zbbox.x, _val[1] = _zbbox.y;
       _val[2] = _zbbox.x + _zbbox.width, _val[3] = _zbbox.y + _zbbox.height;
+      // LOG(INFO) << "_zbbox: " << _val[0] << ", " << _val[1] << ", " << _val[2] << ", " << _val[3];
     }
 
     // // 上传z_bgr和z_box到BPU
@@ -167,17 +168,21 @@ namespace wdr
                                   cv::Rect2f(target_pos.x, target_pos.y, s_x, s_x), true,
                                   cv::Size(config.instance_size, config.instance_size));
     }
+    // cv::imwrite("x_crop.png", x_crop);
 
     // 上传数据并进行推理
-    // LOG(INFO) << "target pos:" << this->target_pos << ", size: " << this->target_size;
+    LOG(INFO) << "target pos:" << this->target_pos << ", size: " << this->target_size;
     cv::Mat _cls_score, _bbox_pred;
     {
       // LOG(INFO) << "x_crop continuous: " << x_crop.isContinuous();
       wdr::BPU::BpuMat bpu_crop = input_mats[0];
       bpu_crop << x_crop, bpu_crop.bpu();
       // input_mats.bpu();
+      // double t1 = cv::getTickCount();
       nets.forward(idxnet, input_mats, output_mats);
-
+      // double t2 = cv::getTickCount();
+      // double timeusage = (t2 - t1) * 1000 / cv::getTickFrequency();
+      // LOG(INFO) << "infer time: " << timeusage;
       // LOG(INFO) << "debug 1";
       wdr::BPU::BpuMat _score = output_mats[0];
       // LOG(INFO) << "debug 2";
@@ -205,7 +210,7 @@ namespace wdr
                                             config.lr);
     set_target(res, false, 0);
     norm_target(img.rows, img.cols);
-    // LOG(INFO) << "target pos:" << this->target_pos << ", size: " << this->target_size;
+    LOG(INFO) << "target pos:" << this->target_pos << ", size: " << this->target_size;
   }
 
   void TrackerDCMT::track(const cv::Mat &img, const cv::Mat &_cls_score, const cv::Mat &_bbox_pred)
@@ -221,7 +226,7 @@ namespace wdr
       scale_z = config.exemplar_size / s_z; // 127/
       float pad = d_search / scale_z;
       float s_x = s_z + 2 * pad;
-      LOG(INFO) << cv::Rect2f(target_pos.x, target_pos.y, std::round(s_x), std::round(s_x));
+      // LOG(INFO) << cv::Rect2f(target_pos.x, target_pos.y, std::round(s_x), std::round(s_x));
       wdr::get_subwindow_tracking(img, x_crop,
                                   cv::Rect2f(target_pos.x, target_pos.y, s_x, s_x), true,
                                   cv::Size(config.instance_size, config.instance_size));

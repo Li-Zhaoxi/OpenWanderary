@@ -19,14 +19,18 @@ class ModelDeploy(object):
         self.z = z
         self.z_bbox = z_bbox
 
-    def track(self, x):
+    def track(self, x, savedebug = None):
         #cls, reg = self.inference[0].forward([self.z_bbox, x, self.z])
         cls, reg = self.inference[0].forward([x, self.z, self.z_bbox])
         # print('cls feature map:')
         # print_properties(cls.properties)
         # print('reg feature map:')
         # print_properties(reg.properties)
-        np.savez(f"data/dcmt/debug_infer/infer_{self.count}.npz", input_0 = x, input_1 = self.z, input_2 = self.z_bbox, output_0 = cls.buffer, output_1 = reg.buffer)
-        self.count = self.count + 1
+        if savedebug is not None and isinstance(savedebug, dict):
+            savedebug["input_0"] = x
+            savedebug["input_1"] = self.z
+            savedebug["input_2"] = self.z_bbox
+            savedebug["output_0"] = cls.buffer
+            savedebug["output_1"] = reg.buffer
 
         return cls.buffer, reg.buffer

@@ -70,7 +70,7 @@ def track(inputs):
     writer = None
     saveroot = args.saveroot
 
-    for idx, im in enumerate(video_player):
+    for idx, (im, name) in enumerate(video_player):
         if len(im.shape) == 2:
             im = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
 
@@ -108,7 +108,10 @@ def track(inputs):
 
         elif idx > start_frame:  # tracking
             t1 = cv2.getTickCount()
-            state = tracking_tracker.track(state, im)
+
+            savedebug = {}
+            
+            state = tracking_tracker.track(state, im, savedebug = savedebug)
             t2 = cv2.getTickCount()
             print(
                 f"time-consumption {(t2 - t1) * 1000 / cv2.getTickFrequency():.2f} ms"
@@ -147,6 +150,10 @@ def track(inputs):
                 (0, 0, 255),
             )
             writer.write(im)
+            
+            if name is not None:
+                npzpath = os.path.join("data/dcmt/debug_infer/", f"{name}.npz")
+                np.savez(npzpath, **savedebug)
             # im_nv12 = bgr2nv12_opencv(im)
             # video_shower.set_img(im_nv12.tobytes())
             # time.sleep(2)

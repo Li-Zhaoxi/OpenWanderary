@@ -62,13 +62,14 @@ def get_subwindow_tracking(im, pos, model_sz, original_sz, avg_chans, out_mode="
             int(context_xmin) : int(context_xmax + 1),
             :,
         ]
+    print(f"context_xmin: {context_xmin}, context_ymin: {context_ymin}, context_xmax: {context_xmax}, context_ymax: {context_ymax}")
     if not np.array_equal(model_sz, original_sz):
         im_patch = cv2.resize(im_patch_original, (model_sz, model_sz))
     else:
         im_patch = im_patch_original
 
     crop_info["crop_cords"] = [context_xmin, context_xmax, context_ymin, context_ymax]
-    crop_info["empty_mask"] = tete_im
+    # crop_info["empty_mask"] = tete_im
     crop_info["pad_info"] = [top_pad, left_pad, r, c]
 
     return im_patch, crop_info
@@ -105,7 +106,7 @@ def get_frames(video_name):
         while True:
             ret, frame = cap.read()
             if ret:
-                yield frame
+                yield frame, None
             else:
                 break
     elif video_name.endswith("avi") or video_name.endswith("mp4"):
@@ -113,7 +114,7 @@ def get_frames(video_name):
         while True:
             ret, frame = cap.read()
             if ret:
-                yield frame
+                yield frame, None
             else:
                 break
     else:
@@ -122,7 +123,7 @@ def get_frames(video_name):
         # images = sorted(images, key=lambda x: int(x.split('/')[-1].split('.')[0]))
         for img in images:
             frame = cv2.imread(img)
-            yield frame
+            yield frame, os.path.basename(img)
 
 
 def print_properties(pro):

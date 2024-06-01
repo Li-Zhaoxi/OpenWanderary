@@ -6,9 +6,53 @@
 #include <cnpy/cnpy.h>
 #include <wanderary/Algorithms/tracker.h>
 
+bool load_infer_data(cnpy::npz_t &ioarrays,
+                     int input_num, const std::vector<int> &input_types,
+                     int output_num, const std::vector<int> &output_types,
+                     std::vector<cv::Mat> &input_data, std::vector<cv::Mat> &output_data)
+{
+  bool is_converted = true;
+  input_data.resize(input_num), output_data.resize(output_num);
+
+  for (int idxin = 0; idxin < input_num && is_converted; idxin++)
+  {
+    std::string field = "input_" + std::to_string(idxin);
+    if (ioarrays.find(field) == ioarrays.end())
+    {
+      is_converted = false;
+      LOG(WARNING) << "Cannot find [" << field << "]";
+    }
+    else
+    {
+      LOG(INFO) << "Start Convert numpy array [" << field << "], type: " << input_types[idxin];
+      wdr::numpy2cv(ioarrays[field], input_data[idxin], input_types[idxin]);
+    }
+  }
+
+  for (int idxout = 0; idxout < output_num && is_converted; idxout++)
+  {
+    std::string field = "output_" + std::to_string(idxout);
+    if (ioarrays.find(field) == ioarrays.end())
+    {
+      is_converted = false;
+      LOG(WARNING) << "Cannot find [" << field << "]";
+    }
+    else
+    {
+      LOG(INFO) << "Start Convert numpy array [" << field << "], type: " << input_types[idxout];
+      wdr::numpy2cv(ioarrays[field], output_data[idxout], output_types[idxout]);
+    }
+  }
+
+  return is_converted;
+}
+
 int test_infer();
 int test_wholeinfer();
 int track_sequence();
+
+int track_sequence_capi();
+
 int main(int argc, char **argv)
 {
   FLAGS_alsologtostderr = 1;
@@ -17,7 +61,8 @@ int main(int argc, char **argv)
 
   // test_infer();
   // test_wholeinfer();
-  track_sequence();
+  // track_sequence();
+  track_sequence_capi();
 
   google::ShutdownGoogleLogging();
   return 0;
@@ -245,10 +290,14 @@ int test_infer()
 int track_sequence()
 {
   std::string binpath = "projects/torchdnn/data/dcmt/DCMT.bin";
-  cv::Rect2f target(653, 221, 55, 40);
+  cv::Rect2f target(653, 220, 55, 40);
   std::string imglistpath = "projects/torchdnn/data/dcmt/ChasingDrones/filelist.txt";
   std::string saveroot = "projects/torchdnn/data/dcmt/ChasingDrones_Results";
   std::string savemode = "video";
+
+  // 如果有这个路径，则进行debug模式
+  // std::string debugroot = "projects/torchdnn/data/dcmt/debug_infer";
+  std::string debugroot = "";
 
   // 1. 提取图像列表
   std::string seqroot = wdr::path::dirname(imglistpath);
@@ -271,11 +320,13 @@ int track_sequence()
   // 3. 开始跟踪
   const int imgnum = imgnames.size();
   bool needinit = true;
+  bool debugmode = debugroot.length() > 0;
   for (int idximg = 0; idximg < imgnum; idximg++)
   {
     auto &imgname = imgnames[idximg];
     LOG(INFO) << "Processing: " << imgname;
 
+    // 加载图像
     std::string imgpath = wdr::path::join({seqroot, imgname});
     if (!wdr::path::exist(imgpath, true))
       continue;
@@ -286,21 +337,82 @@ int track_sequence()
       continue;
     }
 
-    double t1 = cv::getTickCount();
-    if (needinit)
+    // 初始化视频保存器
+    if (savemode == "video" && writer.get() == nullptr)
     {
-      if (savemode == "video")
+      std::string videopath = wdr::path::join({saveroot, "video.mp4"});
+      LOG(INFO) << "videopath: " << videopath;
+      writer = std::make_shared<cv::VideoWriter>(cv::VideoWriter(videopath, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 10, img.size()));
+      CV_Assert(writer->isOpened());
+    }
+
+    // 加载debug数据
+    cnpy::npz_t ioarrays;
+    if (debugmode)
+    {
+      std::string debugpath = wdr::path::join({debugroot, imgname + ".npz"});
+      if (!wdr::path::exist(debugpath, false))
       {
-        std::string videopath = wdr::path::join({saveroot, "video.mp4"});
-        LOG(INFO) << "videopath: " << videopath;
-        writer = std::make_shared<cv::VideoWriter>(cv::VideoWriter(videopath, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 10, img.size()));
-        CV_Assert(writer->isOpened());
+        LOG(INFO) << "The debug path is not exist: " << debugpath;
+        continue;
       }
-      tracker.init(img, target);
-      needinit = false;
+      ioarrays = cnpy::npz_load(debugpath);
+    }
+
+    double t1 = cv::getTickCount();
+
+    // 校验模式
+    if (debugmode)
+    {
+      cv::Mat target_pos_in, target_sz_in, crop_info;
+      std::vector<cv::Mat> cvmatsin, cvmatsout;
+      cv::Mat target_pos_out, target_sz_out;
+
+      // 加载基本推理数据
+      bool is_getiomats = load_infer_data(ioarrays,
+                                          3, {CV_8U, CV_8U, CV_32F},
+                                          2, {CV_32F, CV_32F}, cvmatsin, cvmatsout);
+      if (!is_getiomats)
+      {
+        LOG(WARNING) << "The infer data is not correct, please check the infer data";
+        continue;
+      }
+
+      // 1. 校验初始过程切分是否正确
+      if (ioarrays.find("target_pos_in") == ioarrays.end() ||
+          ioarrays.find("target_sz_in") == ioarrays.end() ||
+          ioarrays.find("crop_info") == ioarrays.end())
+      {
+        wdr::numpy2cv(ioarrays["target_pos_in"], target_pos_in, CV_32F);
+        wdr::numpy2cv(ioarrays["target_sz_in"], target_sz_in, CV_32F);
+        wdr::numpy2cv(ioarrays["crop_info"], crop_info, CV_32F);
+        // LOG(INFO) << "target_pos_in: " << target_pos_in;
+        // LOG(INFO) << "target_sz_in: " << target_sz_in;
+        // LOG(INFO) << "crop_info: " << crop_info;
+        // exit(0);
+      }
+
+      // 2. 校验后处理计算是否正确
+      if (ioarrays.find("target_pos_out") == ioarrays.end() ||
+          ioarrays.find("target_sz_out") == ioarrays.end())
+      {
+        wdr::numpy2cv(ioarrays["target_pos_out"], target_pos_out, CV_32F);
+        wdr::numpy2cv(ioarrays["target_sz_out"], target_sz_out, CV_32F);
+      }
     }
     else
-      tracker.track(img);
+    {
+      if (needinit)
+      {
+        tracker.init(img, target);
+        needinit = false;
+      }
+      else
+      {
+        tracker.track(img);
+      }
+    }
+
     double t2 = cv::getTickCount();
     double timeusage = (t2 - t1) * 1000 / cv::getTickFrequency();
 
@@ -320,5 +432,226 @@ int track_sequence()
     }
   }
 
+  // 1. 验证后处理没问题
+  // 2. 定位改为220，耗时很低的问题，观测forward时候没问题了，存在突然不推理的问题
+  // 3. 存在结果随机的问题
+
   return 0;
+}
+
+// 矩形框由左上角模式转为中心点模式
+template <typename Dtype>
+cv::Rect_<Dtype> cvtRectTL2Center(const cv::Rect_<Dtype> &rect, int offset = 0)
+{
+  cv::Rect_<Dtype> centerrect;
+  centerrect.x = rect.x + (rect.width + offset) / 2;
+  centerrect.y = rect.y + (rect.height + offset) / 2;
+  centerrect.width = rect.width;
+  centerrect.height = rect.height;
+  return centerrect;
+}
+
+// 矩形框由中心点模式转为左上角模式
+template <typename Dtype>
+cv::Rect_<Dtype> cvtRectCenter2TL(const cv::Rect_<Dtype> &rect, int offset = 0)
+{
+  cv::Rect_<Dtype> tlrect;
+  tlrect.x = rect.x - (rect.width + offset) / 2;
+  tlrect.y = rect.y - (rect.height + offset) / 2;
+  tlrect.width = rect.width;
+  tlrect.height = rect.height;
+  return tlrect;
+}
+
+template <typename Dtype>
+cv::Rect_<Dtype> estRectangleInCrop(Dtype lsrc, Dtype ldst, const cv::Size_<Dtype> &target)
+{
+  double scale = double(ldst) / lsrc;
+  double w = target.width * scale, h = target.height * scale;
+
+  return cv::Rect_<Dtype>((ldst - w) / 2.0, (ldst - h) / 2.0, w, h);
+}
+
+// 获取跟踪窗口
+cv::Rect cropTrackWindow(const cv::Mat &img, cv::Mat &trackwindow, const cv::Point2f &tl, const cv::Point2f &br, cv::Vec4i *_pads = nullptr)
+{
+  int context_xmin = int(tl.x), context_ymin = int(tl.y);
+  int context_xmax = int(br.x + 0.5), context_ymax = int(br.y + 0.5);
+
+  // 计算ROI是否在图像内
+  int left_pad = std::max(0, -context_xmin),
+      top_pad = std::max(0, -context_ymin);
+  int right_pad = std::max(0, context_xmax - img.cols),
+      bottom_pad = std::max(0, context_ymax - img.rows);
+
+  cv::Rect roi;
+  roi.x = context_xmin, roi.y = context_ymin;
+  roi.width = context_xmax - context_xmin;
+  roi.height = context_ymax - context_ymin;
+
+  if (_pads)
+    _pads->val[0] = left_pad, _pads->val[1] = top_pad, _pads->val[2] = right_pad, _pads->val[3] = bottom_pad;
+
+  if (left_pad == 0 && top_pad == 0 && right_pad == 0 && bottom_pad == 0)
+  {
+    img(roi).copyTo(trackwindow);
+  }
+  else
+  {
+    cv::Rect imgroi(context_xmin + left_pad, context_ymin + top_pad, context_xmax - context_xmin - left_pad - right_pad, context_ymax - context_ymin - top_pad - bottom_pad);
+    cv::Rect dstroi(left_pad, top_pad, imgroi.width, imgroi.height);
+
+    trackwindow.create(top_pad + dstroi.height, left_pad + dstroi.width, CV_MAKETYPE(img.depth(), img.channels()));
+    trackwindow.setTo(cv::mean(img));
+    img(imgroi).copyTo(trackwindow(dstroi));
+  }
+}
+
+int track_sequence_capi()
+{
+  std::string binpath = "projects/torchdnn/data/dcmt/DCMT.bin";
+  cv::Rect2f target(653, 220, 55, 40);
+  std::string imglistpath = "projects/torchdnn/data/dcmt/ChasingDrones/filelist.txt";
+  std::string saveroot = "projects/torchdnn/data/dcmt/ChasingDrones_Results";
+  std::string savemode = "video";
+
+  // 1. 提取图像列表
+  std::string seqroot = wdr::path::dirname(imglistpath);
+  std::vector<std::string> imgnames;
+  std::ifstream infile(imglistpath);
+  while (!infile.eof())
+  {
+    std::string tmp;
+    infile >> tmp;
+    imgnames.push_back(tmp);
+    // LOG(INFO) << tmp;
+  }
+
+  // 2. 算法初始化
+  std::shared_ptr<cv::VideoWriter> writer;
+
+  wdr::DCMTConfigs dcmtcfg;
+
+  // -----------------模型加载部分--------------------
+  // 2.1. 加载BIN模型集
+  hbPackedDNNHandle_t packed_dnn_handle; // 模型集合指针
+  const char *model_file_name = binpath.c_str();
+  hbDNNInitializeFromFiles(&packed_dnn_handle, &model_file_name, 1);
+  // 2.2. 提取模型集中所有的模型名称
+  const char **model_name_list;
+  int model_count = 0;
+  hbDNNGetModelNameList(&model_name_list, &model_count, packed_dnn_handle);
+  for (int k = 0; k < model_count; k++) // 输出提取出的所有模型的名称
+    LOG(INFO) << "Parsed Model Name: " << std::string(model_name_list[k]);
+  // 2.3. 利用目标模型名提取模型指针
+  hbDNNHandle_t dnn_handle; // ※模型指针
+  hbDNNGetModelHandle(&dnn_handle, packed_dnn_handle, model_name_list[0]);
+
+  // -----------------输入输出内存分配--------------------
+  // 2.1. 获取输入/输出Tensor个数
+  int input_tensornum = 0, output_tensornum = 0;
+  hbDNNGetInputCount(&input_tensornum, dnn_handle);
+  hbDNNGetOutputCount(&output_tensornum, dnn_handle);
+  LOG(INFO) << "input tensor num: " << input_tensornum << ", output tensor num: " << output_tensornum;
+
+  // 2.2. 获取输入/输出Tensor参数
+  std::vector<hbDNNTensorProperties> input_properties, output_properties; // 输入/输出Tensor参数
+  input_properties.resize(input_tensornum), output_properties.resize(output_tensornum);
+  for (int k = 0; k < input_tensornum; k++)
+    hbDNNGetInputTensorProperties(&input_properties[k], dnn_handle, k);
+  for (int k = 0; k < output_tensornum; k++)
+    hbDNNGetOutputTensorProperties(&output_properties[k], dnn_handle, k);
+
+  // 3. 利用参数分配Tensor内存
+  std::vector<hbDNNTensor> input_tensors, output_tensors; // ※输入/输出Tensor
+  input_tensors.resize(input_tensornum), output_tensors.resize(output_tensornum);
+  for (int k = 0; k < input_tensornum; k++)
+  {
+    const auto &property = input_properties[k];
+    input_tensors[k].properties = property;
+    input_tensors[k].properties.alignedShape = input_tensors[k].properties.validShape;
+    hbSysAllocCachedMem(&input_tensors[k].sysMem[0], property.alignedByteSize);
+  }
+  for (int k = 0; k < output_tensornum; k++)
+  {
+    const auto &property = output_properties[k];
+    output_tensors[k].properties = property;
+    hbSysAllocCachedMem(&output_tensors[k].sysMem[0], property.alignedByteSize);
+  }
+  LOG(INFO) << "Finish initializing input/output tensors";
+
+  // 3. 开始跟踪
+  const int imgnum = imgnames.size();
+  bool needinit = true;
+  cv::Mat z_bgr, z_box; // 基本跟踪信息
+  for (int idximg = 0; idximg < imgnum; idximg++)
+  {
+    auto &imgname = imgnames[idximg];
+    LOG(INFO) << "Processing: " << imgname << "init: " << needinit;
+
+    // 加载图像
+    std::string imgpath = wdr::path::join({seqroot, imgname});
+    if (!wdr::path::exist(imgpath, true))
+      continue;
+    cv::Mat img = cv::imread(imgpath);
+    if (img.empty())
+    {
+      LOG(INFO) << "The image is empty, check the valid of : " << imgpath;
+      continue;
+    }
+
+    if (needinit)
+    {
+      cv::Rect2f tgt_cen = cvtRectTL2Center(target); // Boxz转中心点模式
+      float s_zf = wdr::calTargetLength(tgt_cen.size(), dcmtcfg.context_amount);
+      cv::Mat trackwindow;
+      cv::Rect2f tgt_tl = cvtRectCenter2TL(tgt_cen);
+      auto croproi = cropTrackWindow(img, trackwindow, tgt_tl.tl(), tgt_tl.br());
+      LOG(INFO) << "Crop Track Window: " << croproi;
+      cv::resize(trackwindow, z_bgr, cv::Size(dcmtcfg.exemplar_size, dcmtcfg.exemplar_size));
+
+      z_box.create(1, 1, CV_MAKETYPE(CV_32F, 4));
+      cv::Rect2f _zbbox = estRectangleInCrop<float>(s_zf, dcmtcfg.exemplar_size, tgt_cen.size());
+      float *_val = (float *)z_box.data;
+      _val[0] = _zbbox.x, _val[1] = _zbbox.y;
+      _val[2] = _zbbox.x + _zbbox.width, _val[3] = _zbbox.y + _zbbox.height;
+      LOG(INFO) << "z_box point tl: " << _zbbox.tl() << " br: " << _zbbox.br();
+
+      needinit = false;
+      continue;
+    }
+    else
+    {
+      // 利用当前target估计一个边长
+      cv::Rect2f tgt_cen = cvtRectTL2Center(target); // Boxz转中心点模式
+      float s_z = wdr::calTargetLength(tgt_cen.size(), dcmtcfg.context_amount);
+      float scale_z = dcmtcfg.exemplar_size / s_z;
+      float d_search = (float(dcmtcfg.instance_size) - dcmtcfg.exemplar_size) / 2;
+      float pad = d_search / scale_z;
+      float s_x = s_z + 2 * pad;
+
+      cv::Mat trackwindow, x_crop;
+      cv::Rect2f tgt_tl = cvtRectCenter2TL(tgt_cen);
+      auto croproi = cropTrackWindow(img, trackwindow, tgt_tl.tl(), tgt_tl.br());
+      LOG(INFO) << "Crop Track Window: " << croproi;
+      cv::resize(trackwindow, x_crop, cv::Size(dcmtcfg.instance_size, dcmtcfg.instance_size));
+
+      // 上传数据
+      {
+        auto &tensor = input_tensors[0];
+        wdr::BPU::bpuMemcpy(x_crop, tensor, false);
+        hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
+      }
+      {
+        auto &tensor = input_tensors[1];
+        wdr::BPU::bpuMemcpy(z_bgr, tensor, false);
+        hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
+      }
+      {
+        auto &tensor = input_tensors[2];
+        wdr::BPU::bpuMemcpy(z_box, tensor, false);
+        hbSysFlushMem(&tensor.sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
+      }
+    }
+  }
 }

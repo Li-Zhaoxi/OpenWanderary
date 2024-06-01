@@ -40,12 +40,13 @@ class DCMT_deploy(object):
         z_box = np.expand_dims(z_box, axis=0)
         z_box = np.expand_dims(z_box, axis=-1)
         z_box = np.expand_dims(z_box, axis=-1)
-
+        
         net.template(z_bgr, z_box)
 
         window = np.outer(np.hanning(p.score_size), np.hanning(p.score_size))  # [31, 31]
         # print(z_bgr.shape)
         # cv2.imwrite("z_bgr_py.png", z_bgr[0])
+        # print(f"z_box: {z_box}")
         # exit()
 
         state['p'] = p
@@ -57,13 +58,17 @@ class DCMT_deploy(object):
         
         return state
 
-    def track(self, state, im):
+    def track(self, state, im, savedebug = None):
         p = state['p']
         net = state['net']
         avg_chans = state['avg_chans']
         window = state['window']
         target_pos = state['target_pos']
         target_sz = state['target_sz']
+        
+        if savedebug is not None and isinstance(savedebug, dict):
+            savedebug["target_pos_in"] = target_pos
+            savedebug["target_sz_in"] = target_sz
         
         hc_z = target_sz[1] + p.context_amount * sum(target_sz)
         wc_z = target_sz[0] + p.context_amount * sum(target_sz)
@@ -75,8 +80,10 @@ class DCMT_deploy(object):
         
         
 
-        x_crop, _ = get_subwindow_tracking(im, target_pos, p.instance_size, python2round(s_x), avg_chans)
+        x_crop, crop_info = get_subwindow_tracking(im, target_pos, p.instance_size, python2round(s_x), avg_chans)
         state['x_crop'] = copy.deepcopy(x_crop)  # torch float tensor, (3,H,W)
+        if savedebug is not None and isinstance(savedebug, dict):
+            savedebug["crop_info"] = crop_info
 
         x_bgr = np.expand_dims(x_crop, axis=0)
         # x_bgr = x_bgr.astype(np.uint8)
@@ -95,10 +102,11 @@ class DCMT_deploy(object):
 
         return state
 
-    def update(self, net, x_crops, target_pos, target_sz, window, scale_z, p, debug=False):
-        
+    def update(self, net, x_crops, target_pos, target_sz, window, scale_z, p, savedebug=None):
+        # print("x_crops.shape", x_crops.shape)
+        # cv2.imwrite("x_crops_py.png", x_crops[0])
         t1 = cv2.getTickCount()
-        cls_score, bbox_pred = net.track(x_crops)
+        cls_score, bbox_pred = net.track(x_crops, savedebug)
         t2 = cv2.getTickCount()
         usage_time = (t2 - t1) * 1000 / cv2.getTickFrequency()
 
@@ -121,13 +129,16 @@ class DCMT_deploy(object):
         
         # get max
         r_max, c_max = np.unravel_index(pscore.argmax(), pscore.shape)
-
+        print(f"idxs_max: [{r_max}, {c_max}], max_score: {pscore[r_max, c_max]}, cls_score: {cls_score[r_max, c_max]}")
         # to real size
         pred_x1 = pred_x1[r_max, c_max]
         pred_y1 = pred_y1[r_max, c_max]
         pred_x2 = pred_x2[r_max, c_max]
         pred_y2 = pred_y2[r_max, c_max]
-
+        print(f"pred_x1: {pred_x1}, pred_y1: {pred_y1}, pred_x2: {pred_x2}, pred_y2: {pred_y2}")
+        print(f"bbox_pred0: {bbox_pred[0, r_max, c_max]}, bbox_pred1: {bbox_pred[1, r_max, c_max]}, bbox_pred2: {bbox_pred[2, r_max, c_max]}, bbox_pred3: {bbox_pred[3, r_max, c_max]}")
+        print(f"anchorx: {self.grid_to_search_x[r_max, c_max]}, anchory: {self.grid_to_search_y[r_max, c_max]}")
+        print(f"instance_size: {p.instance_size}, sz_in: {target_sz},{target_pos}, scalexy: {scale_z}")
         pred_xs = (pred_x1 + pred_x2) / 2
         pred_ys = (pred_y1 + pred_y2) / 2
         pred_w = pred_x2 - pred_x1
@@ -142,6 +153,7 @@ class DCMT_deploy(object):
 
         # size learning rate
         lr = penalty[r_max, c_max] * cls_score[r_max, c_max] * p.lr
+        print(f"adapt_lr: {lr}")
         # size rate
         res_xs = target_pos[0] + diff_xs
         res_ys = target_pos[1] + diff_ys
@@ -151,6 +163,11 @@ class DCMT_deploy(object):
         target_pos = np.array([res_xs, res_ys])
         # target_sz = target_sz * (1 - lr) + lr * np.array([res_w, res_h])
         target_sz = np.array([res_w, res_h])
+        
+        if savedebug is not None and isinstance(savedebug, dict):
+            savedebug["target_pos_out"] = target_pos.astype(np.float32)
+            savedebug["target_sz_out"] = target_sz.astype(np.float32)
+
         return target_pos, target_sz, cls_score[r_max, c_max], usage_time
 
     def grids(self, p):

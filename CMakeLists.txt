@@ -18,6 +18,7 @@ find_package(Eigen3 REQUIRED)
 
 MESSAGE("OPENCV VERSION: ${OpenCV_VERSION}")
 
+include("${CMAKE_SOURCE_DIR}/cmake/pack_3rdparty.cmake")
 
 include_directories(
   ${EIGEN3_INCLUDE_DIRS}
@@ -42,3 +43,4 @@ add_subdirectory(3rdparty)
 
 add_subdirectory(wanderary)
 add_subdirectory(examples)
+add_subdirectory(tests)

@@ -4,6 +4,8 @@ IncludeCategories:
     Priority:        1
   - Regex:           '^<glog/.*\.h>$' # glog 头文件
     Priority:        2
+  - Regex:           '^<gtest/.*\.h>$' # glog 头文件
+    Priority:        2
   - Regex:           '^<boost/.*\.hpp>$' # Boost 头文件
     Priority:        3
   - Regex:           '^".*\.h"$'        # 项目内头文件

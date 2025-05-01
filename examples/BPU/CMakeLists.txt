@@ -5,7 +5,8 @@ file (GLOB SOURCES "[^_]*.cpp")
 
 
 link_directories(
-  /usr/lib/hbbpu/
+  /usr/lib/
+  /usr/hobot/lib/
 )
 
 set(BIN infer-unet)
@@ -42,9 +43,10 @@ set(BIN infer_unet_standalong)
 add_executable(${BIN} infer_unet_standalong.cpp)
 target_link_libraries(${BIN} 
 -lpthread -lrt -dl 
-/usr/lib/hbbpu/libdnn.so
-/usr/lib/hbbpu/libcnn_intf.so
-/usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so
+/usr/lib/libdnn.so
+/usr/hobot/lib/libcnn_intf.so
+# /usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so
+/usr/lib/libhbrt_bayes_aarch64.so
 -lglog -lgflags 
 ${OpenCV_LIBS} cnpy)
 
@@ -65,6 +67,7 @@ add_executable(${BIN} infer_demo.cpp)
 target_link_libraries(${BIN} 
 ${OpenCV_LIBS}
 -lglog -lgflags -lpthread -lrt -dl
-/usr/lib/hbbpu/libdnn.so
-/usr/lib/hbbpu/libcnn_intf.so
-/usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so)
+/usr/lib/libdnn.so
+/usr/hobot/lib/libcnn_intf.so
+# /usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so
+/usr/lib/libhbrt_bayes_aarch64.so)

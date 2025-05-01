@@ -12,6 +12,8 @@ add_library(${LIBRARY} SHARED ${SOURCES})
 target_link_libraries(${LIBRARY} 
 -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs 
 -lglog -lgflags -lpthread -lrt -dl
-/usr/lib/hbbpu/libdnn.so
-/usr/lib/hbbpu/libcnn_intf.so
-/usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so)
+/usr/lib/libdnn.so
+/usr/hobot/lib/libcnn_intf.so
+# /usr/lib/hbbpu/libhbrt_bernoulli_aarch64.so
+/usr/lib/libhbrt_bayes_aarch64.so
+)

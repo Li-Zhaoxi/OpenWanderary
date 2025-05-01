@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 

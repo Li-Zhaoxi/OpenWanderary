@@ -1,0 +1,14 @@
+# .clang-format 核心配置
+IncludeCategories:
+  - Regex:           '^<([^./]+)>$'          # 标准库头文件
+    Priority:        1
+  - Regex:           '^<glog/.*\.h>$' # glog 头文件
+    Priority:        2
+  - Regex:           '^<boost/.*\.hpp>$' # Boost 头文件
+    Priority:        3
+  - Regex:           '^".*\.h"$'        # 项目内头文件
+    Priority:        4
+SortIncludes: CaseSensitive             # 确保优先级生效
+SpacesBeforeTrailingComments: 2  # 行尾注释前固定保留 2 个空格
+AccessModifierOffset: -1  # 根据基础风格调整数值，使 `public` 缩进 1 空格
+BasedOnStyle: Google       # 示例基于 Google 风格，可替换为其他风格

@@ -1,0 +1,78 @@
+default_language_version:
+  python: python3.10
+
+fail_fast: true
+
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: ClangFormat
+        entry: clang-format
+        language: system
+        files: \.(c|cc|cxx|cpp|h|hpp)$
+        args: ["--style=file", "-i"]
+  - repo: local
+    hooks:
+      - id: cpplint
+        name: cpplint
+        entry: cpplint
+        language: system
+        files: \.(c|cc|cxx|cpp|h|hpp)$
+        args: ["--filter=-legal/copyright,-build/header_guard", "--includeorder=standardcfirst"]
+  - repo: local
+    hooks:
+      - id: check-added-large-files
+        name: CheckAddedLargeFiles
+        entry: check-added-large-files --maxkb 128
+        language: system
+  - repo: local
+    hooks:
+      - id: end-of-file-fixer
+        name: FixEndOfFile
+        entry: end-of-file-fixer
+        language: system
+        exclude: ^.*.jpeg|^.*.jpg|^.*.png|^.*.json
+  - repo: local
+    hooks:
+      - id:  trailing-whitespace
+        name: TrimTrailingWhitespace
+        entry: trailing-whitespace-fixer
+        language: system
+        exclude: ^.*.jpeg|^.*.jpg|^.*.png
+  - repo: local
+    hooks:
+      - id: check-docstring-first
+        name: Check docstring first
+        entry: check-docstring-first
+        language: system
+        types: [python]
+  - repo: local
+    hooks:
+      - id: autoflake
+        name: autoflake
+        entry: autoflake
+        language: system
+        types: [python]
+        args: ["-r", "--remove-all-unused-imports", "--ignore-init-module-imports", "--remove-unused-variables", "--expand-star-imports", "--in-place"]
+  - repo: local
+    hooks:
+      - id: isort
+        name: isort
+        entry: isort
+        language: system
+        types: [python]
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: black -l 79
+        language: system
+        types: [python, c++]
+  - repo: local
+    hooks:
+      - id: flake8
+        name: flake8
+        entry: flake8
+        language: system
+        types: [python]

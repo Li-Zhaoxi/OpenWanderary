@@ -77,7 +77,10 @@
     "core": "cpp",
     "eigenvalues": "cpp",
     "geometry": "cpp",
-    "eigen": "cpp"
+    "eigen": "cpp",
+    "unordered_set": "cpp",
+    "numbers": "cpp",
+    "semaphore": "cpp"
   },
   "cmake.clearOutputBeforeBuild": false,
   "cmake.ctest.parallelJobs": 4,

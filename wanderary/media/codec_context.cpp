@@ -52,4 +52,14 @@ CodecContext CodecContext::CreateJpgEncode(MediaCodecID codec_id, int width,
   return ctx;
 }
 
+int CodecContext::width() const {
+  CHECK(is_codec_video(this->id()) && this->encoder());
+  return this->ctx_.video_enc_params.width;
+}
+
+int CodecContext::height() const {
+  CHECK(is_codec_video(this->id()) && this->encoder());
+  return this->ctx_.video_enc_params.height;
+}
+
 }  // namespace wdr::media

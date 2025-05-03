@@ -161,6 +161,9 @@ class CodecContext {
   bool encoder() const { return ctx_.encoder; }
   int instance_index() const { return ctx_.instance_index; }
 
+  int width() const;
+  int height() const;
+
   static CodecContext CreateJpgEncode(MediaCodecID codec_id, int width,
                                       int height, CodecPixelFormat pixfmt);
 

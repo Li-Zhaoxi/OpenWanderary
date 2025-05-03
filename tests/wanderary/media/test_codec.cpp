@@ -28,13 +28,16 @@ TEST(MediaCodec, GetDefaultContext) {
   EXPECT_TRUE(ctx.id() == MediaCodecID::kMJPEG)
       << "codec_id: " << MediaCodecID2str(ctx.id());
   EXPECT_EQ(ctx.encoder(), false);
-  EXPECT_EQ(ctx.instance_index(), -1);
+  EXPECT_EQ(ctx.instance_index(), 0);
 }
 
 TEST(MediaCodecJpg, InitRelease) {
   auto ctx = wdr::media::CodecContext::CreateJpgEncode(
       MediaCodecID::kMJPEG, 1920, 1080, CodecPixelFormat::kNV12);
   MediaCodecState state = MediaCodecState::kNone;
+
+  EXPECT_EQ(ctx.width(), 1920);
+  EXPECT_EQ(ctx.height(), 1080);
 
   // 初始化
   wdr::media::InitializeCodecContext(&ctx);

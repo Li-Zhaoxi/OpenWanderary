@@ -9,6 +9,9 @@ class MediaCodecJpg : public MediaCodecBase {
   MediaCodecJpg(MediaCodecID codec_id, bool encode, int width, int height,
                 CodecPixelFormat pixfmt);
   virtual ~MediaCodecJpg() = default;
+
+ protected:
+  void check_valid(const cv::Mat &frame) const override;
 };
 
 }  // namespace wdr::media

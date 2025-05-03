@@ -2,11 +2,15 @@
 IncludeCategories:
   - Regex:           '^<([^./]+)>$'          # 标准库头文件
     Priority:        1
+  - Regex:           '^<.*\.h>$' # glog 头文件
+    Priority:        2
   - Regex:           '^<glog/.*\.h>$' # glog 头文件
     Priority:        2
   - Regex:           '^<gtest/.*\.h>$' # glog 头文件
     Priority:        2
   - Regex:           '^<boost/.*\.hpp>$' # Boost 头文件
+    Priority:        3
+  - Regex:           '^<opencv2/.*\.hpp>$' # opencv 头文件
     Priority:        3
   - Regex:           '^".*\.h"$'        # 项目内头文件
     Priority:        4

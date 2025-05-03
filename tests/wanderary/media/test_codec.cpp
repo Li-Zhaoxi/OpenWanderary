@@ -4,6 +4,7 @@
 #include "wanderary/media/media_codec.h"
 
 using CodecDescriptor = wdr::media::CodecDescriptor;
+using CodecStartupParams = wdr::media::CodecStartupParams;
 
 TEST(MediaCodec, GetCodecDescriptor) {
   const CodecDescriptor desc =
@@ -20,4 +21,49 @@ TEST(MediaCodec, GetCodecDescriptor) {
   EXPECT_EQ(desc.name(), "mjpeg");
   EXPECT_EQ(desc.long_name(), "Motion JPEG");
   EXPECT_EQ(desc.mime_types(), "image/jpeg");
+}
+
+TEST(MediaCodec, GetDefaultContext) {
+  const auto ctx = wdr::media::GetDefaultContext(MediaCodecID::kMJPEG, false);
+  EXPECT_TRUE(ctx.id() == MediaCodecID::kMJPEG)
+      << "codec_id: " << MediaCodecID2str(ctx.id());
+  EXPECT_EQ(ctx.encoder(), false);
+  EXPECT_EQ(ctx.instance_index(), -1);
+}
+
+TEST(MediaCodecJpg, InitRelease) {
+  auto ctx = wdr::media::CodecContext::CreateJpgEncode(
+      MediaCodecID::kMJPEG, 1920, 1080, CodecPixelFormat::kNV12);
+  MediaCodecState state = MediaCodecState::kNone;
+
+  // 初始化
+  wdr::media::InitializeCodecContext(&ctx);
+  state = wdr::media::GetCodecState(&ctx);
+  EXPECT_TRUE(state == MediaCodecState::kInitialized)
+      << "codec_state: " << MediaCodecState2str(state);
+
+  // 配置
+  wdr::media::CodecConfigure(&ctx);
+  state = wdr::media::GetCodecState(&ctx);
+  EXPECT_TRUE(state == MediaCodecState::kConfigured)
+      << "codec_state: " << MediaCodecState2str(state);
+
+  // 启动
+  CodecStartupParams params(ctx.id(), ctx.encoder());
+  wdr::media::CodecStart(&ctx, &params);
+  state = wdr::media::GetCodecState(&ctx);
+  EXPECT_TRUE(state == MediaCodecState::kStarted)
+      << "codec_state: " << MediaCodecState2str(state);
+
+  // 停止
+  wdr::media::CodecStop(&ctx);
+  state = wdr::media::GetCodecState(&ctx);
+  EXPECT_TRUE(state == MediaCodecState::kInitialized)
+      << "codec_state: " << MediaCodecState2str(state);
+
+  // 释放
+  wdr::media::ReleaseCodecContext(&ctx);
+  state = wdr::media::GetCodecState(&ctx);
+  EXPECT_TRUE(state == MediaCodecState::kUninitialized)
+      << "codec_state: " << MediaCodecState2str(state);
 }

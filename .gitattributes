@@ -1,1 +1,2 @@
 tests/test_data/media/* filter=lfs diff=lfs merge=lfs
+tests/test_data/utils/* filter=lfs diff=lfs merge=lfs

@@ -1,5 +1,9 @@
 cur_dir=$(pwd)
 
+#
+sudo apt-get install git-lfs
+git lfs install
+
 # 安装nlohmann_json
 cd ${cur_dir}/3rdparty/nlohmann_json
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DJSON_BuildTests=OFF

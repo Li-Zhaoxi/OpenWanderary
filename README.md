@@ -1,4 +1,4 @@
- 
+
 开源项目OpenWanderary[wɒndərəri]，拥抱多传感器，核心在于提高基于Linux的嵌入式系统的研发&部署效率。所有功能来源于项目，应用于项目。
 
 自己做一些嵌入式开发时候，总会遇到一些问题，每家的硬件/设备都有自己的一套API，在学习测试这些API上都要花费较多时间，而且项目开发中总会有一些基础功能都要重新造一遍，这些功能并不难，但开发+测试总会占用较多的时间。因此我也经常在想，如果有一个好点的基础库，是不是可以省下更多的时间来研发更多有趣的应用。
@@ -17,19 +17,24 @@
 
 # 代码编译
 
+由于py包安装在~/.local下面，因此需要先配置下环境变量。在`~/.bashrc`后面添加`export PATH=${HOME}/.local/bin:${PATH}`, 然后source一下。
+
+下面开始编译代码
+```
+git clone --recursive https://github.com/Li-Zhaoxi/OpenWanderary.git
+cd OpenWanderary
+make rely # 编译依赖项
+make debug # 编译debug版本
+```
+
+
+
 依赖库安装，可能也有一些没在这里体现，比如glog,gflags等
 ```
 sudo apt-get install libopencv-dev libboost1.71-all-dev
 ```
-编译代码，内存多可以试试make -j6。交叉编译还没整明白ㄒoㄒ
-```
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j4
-```
 
-我这里编译代码用的是vscode的cmake插件。
+
 
 # API文档
 
@@ -86,6 +91,3 @@ make -j4
 
 # 代码贡献
 欢迎各位多多使用，提提建议，目前代码贡献规范还没建立起来，有问题就直接在issue中提吧，解决不了就把项目发出来调试看看。
-
-
-

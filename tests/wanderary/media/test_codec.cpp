@@ -1,10 +1,12 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include "wanderary/media/codec_jpg.h"
 #include "wanderary/media/media_codec.h"
 
 using CodecDescriptor = wdr::media::CodecDescriptor;
 using CodecStartupParams = wdr::media::CodecStartupParams;
+using MediaCodecJpg = wdr::media::MediaCodecJpg;
 
 TEST(MediaCodec, GetCodecDescriptor) {
   const CodecDescriptor desc =
@@ -69,4 +71,9 @@ TEST(MediaCodecJpg, InitRelease) {
   state = wdr::media::GetCodecState(&ctx);
   EXPECT_TRUE(state == MediaCodecState::kUninitialized)
       << "codec_state: " << MediaCodecState2str(state);
+}
+
+TEST(MediaCodecJpg, CodecEncode) {
+  MediaCodecJpg codec(MediaCodecID::kMJPEG, true, 1920, 1080,
+                      CodecPixelFormat::kNV12);
 }

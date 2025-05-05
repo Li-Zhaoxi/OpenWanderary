@@ -156,6 +156,7 @@ class CodecContext {
   CodecContext();
 
   media_codec_context_t &mutable_context() { return ctx_; }
+  const media_codec_context_t &context() const { return ctx_; }
 
   MediaCodecID id() const;
   bool encoder() const { return ctx_.encoder; }

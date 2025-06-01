@@ -26,13 +26,20 @@ CodecContext CodecContext::CreateJpgEncode(MediaCodecID codec_id, int width,
   auto &params = c_ctx.video_enc_params;
   params.width = width;
   params.height = height;
-  params.pix_fmt = static_cast<mc_pixel_format_t>(pixfmt);
+  params.pix_fmt = MC_PIXEL_FORMAT_NV12;
+  params.bitstream_buf_size =
+      (width * height * 3 / 2 + 0xfff) & ~0xfff;  // align to 4096
   params.frame_buf_count = 5;
+  params.external_frame_buf = false;
   params.bitstream_buf_count = 5;
+
+  params.gop_params.decoding_refresh_type = 2;
+  params.gop_params.gop_preset_idx = 9;
+
   params.rot_degree = MC_CCW_0;
   params.mir_direction = MC_DIRECTION_NONE;
   params.frame_cropping_flag = false;
-  params.external_frame_buf = false;
+  params.enable_user_pts = 1;
 
   if (codec_id == MediaCodecID::kMJPEG) {
     params.rc_params.mode = MC_AV_RC_MODE_MJPEGFIXQP;
@@ -42,11 +49,10 @@ CodecContext CodecContext::CreateJpgEncode(MediaCodecID codec_id, int width,
     CHECK(err_code == MediaErrorCode::kSuccess)
         << "Failed to get rate control config, error code: "
         << MediaErrorCode2str(err_code);
+
     params.mjpeg_enc_config.restart_interval = width / 16;
-    params.mjpeg_enc_config.extended_sequential = true;
   } else {
-    params.jpeg_enc_config.restart_interval = width / 16;
-    params.jpeg_enc_config.extended_sequential = true;
+    LOG(FATAL) << "Unsupported codec: " << MediaCodecID2str(codec_id);
   }
 
   return ctx;

@@ -22,11 +22,13 @@ class MediaCodecBase {
   media_codec_buffer_t buf_;
   media_codec_output_buffer_info_t out_info_;
 
-  virtual void check_valid(const cv::Mat &frame) const {}
-
- private:
-  bool process_input(const cv::Mat &frame);
-  bool process_output(cv::Mat *out);
+  virtual void check_valid(const cv::Mat &frame) const = 0;
+  virtual void prepare_dequeue_input(CodecContext *ctx,
+                                     media_codec_buffer_t *buf) const = 0;
+  virtual void prepare_queue_input(const cv::Mat &frame, CodecContext *ctx,
+                                   media_codec_buffer_t *buf) const = 0;
+  virtual void prepare_output(const media_codec_buffer_t &buf,
+                              const CodecContext &ctx, cv::Mat *out) const = 0;
 };
 
 }  // namespace wdr::media

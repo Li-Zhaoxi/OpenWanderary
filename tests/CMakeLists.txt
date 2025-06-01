@@ -1,4 +1,4 @@
-find_package(GTest REQUIRED)
+
 
 include("${CMAKE_SOURCE_DIR}/cmake/add_test.cmake")
 

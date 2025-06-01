@@ -1,8 +1,15 @@
+#include <string>
+#include <vector>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "wanderary/media/codec_jpg.h"
 #include "wanderary/media/media_codec.h"
+#include "wanderary/testing/data_checking.h"
+#include "wanderary/testing/data_convertor.h"
+#include "wanderary/utils/convertor.h"
+#include "wanderary/utils/file_io.h"
 
 using CodecDescriptor = wdr::media::CodecDescriptor;
 using CodecStartupParams = wdr::media::CodecStartupParams;
@@ -74,6 +81,25 @@ TEST(MediaCodecJpg, InitRelease) {
 }
 
 TEST(MediaCodecJpg, CodecEncode) {
-  MediaCodecJpg codec(MediaCodecID::kMJPEG, true, 1920, 1080,
-                      CodecPixelFormat::kNV12);
+  MediaCodecJpg codec(MediaCodecID::kMJPEG, true, 1280, 720);
+  const std::string imgpath = "../../test_data/media/zidane.jpg";
+  const std::string gtpath = "../../test_data/media/zidane_encode.bin";
+  const cv::Mat img = cv::imread(imgpath);
+  const auto gt_enc = wdr::ReadBytesFromFile<uchar>(gtpath);
+  cv::Mat img_yuv;
+  cv::cvtColor(img, img_yuv, cv::COLOR_BGR2YUV);
+
+  cv::Mat nv12;
+  wdr::BGRToNV12(img, &nv12);
+
+  cv::Mat res;
+  codec.init();
+  codec.process(nv12, &res);
+  codec.close();
+  LOG(INFO) << "res: " << res.size();
+  std::vector<uchar> buffer;
+  cv::Mat dec = cv::imdecode(res, cv::ImreadModes::IMREAD_COLOR);
+  LOG(INFO) << "dec: " << dec.size();
+
+  wdr::testing::Check<uchar>(wdr::testing::Convertor(res), gt_enc, 0);
 }

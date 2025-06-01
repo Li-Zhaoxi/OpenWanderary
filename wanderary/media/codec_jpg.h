@@ -22,6 +22,7 @@ class MediaCodecJpg : public MediaCodecBase {
   void prepare_queue_input(const cv::Mat &frame, CodecContext *ctx,
                            media_codec_buffer_t *buf) const override;
   void prepare_output(const media_codec_buffer_t &buf, const CodecContext &ctx,
+                      const media_codec_output_buffer_info_t &info,
                       cv::Mat *out) const override;
 
  private:

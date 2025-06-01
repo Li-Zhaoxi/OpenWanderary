@@ -6,6 +6,7 @@ __pycache__
 
 !projects/torchdnn/demos/DCMT/lib
 *.bin
+!tests/test_data/media/zidane_encode.bin
 projects/torchdnn/data/unet
 projects/torchdnn/data/yolov5
 projects/torchdnn/data/dcmt

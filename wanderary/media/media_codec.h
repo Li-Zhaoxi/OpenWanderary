@@ -166,7 +166,9 @@ class CodecContext {
   int height() const;
 
   static CodecContext CreateJpgEncode(MediaCodecID codec_id, int width,
-                                      int height, CodecPixelFormat pixfmt);
+                                      int height);
+  static CodecContext CreateJpgDecode(MediaCodecID codec_id, int width,
+                                      int height);
 
  private:
   media_codec_context_t ctx_;

@@ -55,7 +55,7 @@ bool MediaCodecBase::process(const cv::Mat &frame, cv::Mat *out) {
     return false;
   }
 
-  this->prepare_output(buf_, ctx_, out);
+  this->prepare_output(buf_, ctx_, out_info_, out);
 
   err_code = int2MediaErrorCode(
       hb_mm_mc_queue_output_buffer(&ctx_.mutable_context(), &buf_, 0));

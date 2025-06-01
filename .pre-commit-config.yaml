@@ -3,6 +3,8 @@ default_language_version:
 
 fail_fast: true
 
+exclude: '.*.bin$|.*.jpg$'
+
 repos:
   - repo: local
     hooks:

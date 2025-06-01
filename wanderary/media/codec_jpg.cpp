@@ -8,10 +8,9 @@ MediaCodecJpg::MediaCodecJpg(MediaCodecID codec_id, bool encode, int width,
                              int height)
     : nv12_size_(width * height * 3 / 2), MediaCodecBase(codec_id, encode) {
   if (encode)
-    this->ctx_ = CodecContext::CreateJpgEncode(codec_id, width, height,
-                                               CodecPixelFormat::kNV12);
+    this->ctx_ = CodecContext::CreateJpgEncode(codec_id, width, height);
   else
-    LOG(FATAL) << "Jpg decode not supported yet";
+    this->ctx_ = CodecContext::CreateJpgDecode(codec_id, width, height);
 }
 
 void MediaCodecJpg::check_valid(const cv::Mat &frame) const {
@@ -21,7 +20,10 @@ void MediaCodecJpg::check_valid(const cv::Mat &frame) const {
     CHECK_EQ(frame.channels(), 1);
     CHECK_EQ(frame.type(), CV_8UC1);
   } else {
-    LOG(FATAL) << "Jpg decode not supported yet";
+    CHECK_EQ(frame.rows, 1);
+    CHECK_LE(frame.cols, this->nv12_size_);
+    CHECK_EQ(frame.channels(), 1);
+    CHECK_EQ(frame.type(), CV_8UC1);
   }
 }
 
@@ -46,12 +48,15 @@ void MediaCodecJpg::prepare_queue_input(const cv::Mat &frame, CodecContext *ctx,
   } else {
     CHECK_GE(buf->vstream_buf.size, nv12_size_);
     buf->type = MC_VIDEO_STREAM_BUFFER;
-    LOG(FATAL) << "not implemented";
+    buf->vstream_buf.size = nv12_size_;
+    buf->vstream_buf.stream_end = 0;
+    memcpy(buf->vstream_buf.vir_ptr, frame.data, nv12_size_);
   }
 }
 
 void MediaCodecJpg::prepare_output(const media_codec_buffer_t &buf,
                                    const CodecContext &ctx,
+                                   const media_codec_output_buffer_info_t &info,
                                    cv::Mat *out) const {
   if (!ctx.encoder() && (buf.type != MC_VIDEO_FRAME_BUFFER)) {
     LOG(FATAL) << "decoder not work";
@@ -60,14 +65,22 @@ void MediaCodecJpg::prepare_output(const media_codec_buffer_t &buf,
   if (is_codec_video(ctx.id())) {
     if (ctx.encoder()) {
       const int data_size = buf.vstream_buf.size;
-      LOG(INFO) << "encode data_size: " << data_size;
       out->create(1, data_size, CV_8UC1);
       memcpy(out->data, buf.vstream_buf.vir_ptr, data_size);
     } else {
+      if (info.video_frame_info.decode_result == 0 || buf_.vframe_buf.size == 0)
+        LOG(FATAL) << "decode failed";
       const int w = buf.vframe_buf.width;
       const int h = buf.vframe_buf.height;
-      LOG(FATAL) << "not support";
+      CHECK_EQ(nv12_size_, w * h * 3 / 2);
+      out->create(h * 3 / 2, w, CV_8UC1);
+      const int offset = w * h;
+      memcpy(out->data, buf_.vframe_buf.vir_ptr[0], offset);
+      memcpy(out->data + offset, buf_.vframe_buf.vir_ptr[1], offset / 2);
     }
+  } else {
+    LOG(FATAL) << "Not support the codec that is not video, id: "
+               << MediaCodecID2str(ctx.id());
   }
 }
 

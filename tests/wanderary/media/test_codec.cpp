@@ -41,8 +41,8 @@ TEST(MediaCodec, GetDefaultContext) {
 }
 
 TEST(MediaCodecJpg, InitRelease) {
-  auto ctx = wdr::media::CodecContext::CreateJpgEncode(
-      MediaCodecID::kMJPEG, 1920, 1080, CodecPixelFormat::kNV12);
+  auto ctx = wdr::media::CodecContext::CreateJpgEncode(MediaCodecID::kMJPEG,
+                                                       1920, 1080);
   MediaCodecState state = MediaCodecState::kNone;
 
   EXPECT_EQ(ctx.width(), 1920);
@@ -102,4 +102,29 @@ TEST(MediaCodecJpg, CodecEncode) {
   LOG(INFO) << "dec: " << dec.size();
 
   wdr::testing::Check<uchar>(wdr::testing::Convertor(res), gt_enc, 0);
+}
+
+TEST(MediaCodecJpg, CodecDecode) {
+  MediaCodecJpg codec(MediaCodecID::kMJPEG, false, 1280, 720);
+  const std::string imgpath = "../../test_data/media/zidane.jpg";
+  const std::string gtpath = "../../test_data/media/zidane_decode.png";
+  const cv::Mat img = cv::imread(imgpath);
+  const cv::Mat gtimg = cv::imread(gtpath);
+
+  // 构造待解码数据
+  std::vector<uchar> enc_buf;
+  cv::imencode(".jpg", img, enc_buf);
+  cv::Mat img_enc(1, enc_buf.size(), CV_8UC1, enc_buf.data());
+  cv::Mat res;
+
+  codec.init();
+  codec.process(img_enc, &res);
+  codec.close();
+
+  LOG(INFO) << "res: " << res.size();
+  cv::Mat dec_img;
+  cv::cvtColor(res, dec_img, cv::COLOR_YUV2BGR_NV12);
+  LOG(INFO) << "dec img size: " << dec_img.size();
+
+  wdr::testing::Check(dec_img, gtimg, 0);
 }

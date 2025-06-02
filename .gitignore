@@ -1,4 +1,5 @@
 build/
+build_release/
 lib/
 bin/
 examples/modules

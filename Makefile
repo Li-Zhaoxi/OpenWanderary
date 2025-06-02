@@ -10,3 +10,7 @@ rely:
 debug:
 	cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug; \
 	make -j6 -C build/;
+
+release:
+	cmake -S . -B build_release -DCMAKE_BUILD_TYPE=Release; \
+	make -j6 -C build_release/;

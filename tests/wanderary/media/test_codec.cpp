@@ -126,3 +126,41 @@ TEST(MediaCodecJpg, CodecDecode) {
 
   wdr::testing::Check(dec_img, gtimg, 0);
 }
+
+TEST(MediaCodecJpg, VideoCapture) {
+  GTEST_SKIP();  // 如果有支持的USB摄像头，注释掉这行代码
+  const int imgh = 2448;
+  const int imgw = 3264;
+
+  cv::VideoCapture cap(0, cv::CAP_V4L2);
+  cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
+  cap.set(cv::CAP_PROP_FRAME_WIDTH, imgw);
+  cap.set(cv::CAP_PROP_FRAME_HEIGHT, imgh);
+  cap.set(cv::CAP_PROP_BUFFERSIZE, 3);
+  cap.set(cv::CAP_PROP_CONVERT_RGB, 0);
+
+  MediaCodecJpg codec(MediaCodecID::kMJPEG, false, imgw, imgh);
+  codec.init();
+
+  cv::Mat enc_data;
+  cv::Mat yuv;
+  cv::Mat rgb;
+  cv::Mat small_img;
+  cv::namedWindow("frame", cv::WINDOW_NORMAL);
+  while (1) {
+    if (!cap.grab()) continue;
+    if (!cap.retrieve(enc_data)) continue;
+    const double t1 = cv::getTickCount();
+    const bool state = codec.process(enc_data, &yuv);
+    if (!state) continue;
+    cv::cvtColor(yuv, rgb, cv::COLOR_YUV2BGR_NV12);
+    const double t2 = cv::getTickCount();
+
+    cv::resize(rgb, small_img, cv::Size(imgw / 4, imgh / 4));
+    cv::imshow("frame", small_img);
+    if (cv::waitKey(1) == 'q') break;
+  }
+
+  codec.close();
+  cap.release();
+}

@@ -13,3 +13,6 @@ flake8-comprehensions==3.16.0
 flake8-absolute-import==1.0.0.2
 flake8-tidy-imports==4.11.0
 pep8-naming==0.15.0
+
+# Pytest
+pytest<=8.0.2

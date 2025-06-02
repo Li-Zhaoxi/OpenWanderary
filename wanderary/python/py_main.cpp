@@ -2,5 +2,6 @@
 
 PYBIND11_MODULE(wanderary, m) {
   m.doc() = "wanderary";
+  BindUtils(&m);
   BindMedia(&m);
 }

@@ -26,9 +26,14 @@
   std::make_pair(BOOST_PP_TUPLE_ELEM(1, elem), \
                  name::BOOST_PP_TUPLE_ELEM(0, elem))
 
+#define ENUM_TO_STRVAR_SEQ_X(s, name, elem)          \
+  std::make_pair(name::BOOST_PP_TUPLE_ELEM(0, elem), \
+                 BOOST_PP_STRINGIZE(BOOST_PP_TUPLE_ELEM(0, elem)))
+
 #define VAR_NAME_TYPE2STRING(name) map_##name##2str
 #define VAR_NAME_STRING2TYPE(name) map_str2##name
 #define VAR_NAME_INT2TYPE(name) map_int2##name
+#define VAR_NAME_TYPE2STRVAR(name) map_##name##2strvar
 #define FUN_NAME_TYPE2STRING(name) BOOST_PP_CAT(name, 2str)
 #define FUN_NAME_STRING2TYPE(name) BOOST_PP_CAT(str2, name)
 #define FUN_NAME_INT2TYPE(name) BOOST_PP_CAT(int2, name)
@@ -51,6 +56,9 @@
   inline static const std::map<int, name> VAR_NAME_INT2TYPE(name) = {         \
       BOOST_PP_SEQ_ENUM(                                                      \
           BOOST_PP_SEQ_TRANSFORM(INT_TO_ENUM_SEQ_X, name, enumerators))};     \
+  inline static const std::map<name, std::string> VAR_NAME_TYPE2STRVAR(       \
+      name) = {BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(ENUM_TO_STRVAR_SEQ_X, \
+                                                        name, enumerators))}; \
   namespace {                                                                 \
   void UniqueEnumCheck##name() {                                              \
     switch (name()) {                                                         \

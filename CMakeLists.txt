@@ -16,6 +16,13 @@ find_package(OpenCV 4 REQUIRED)
 find_package(Boost 1.71.0 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(pybind11_json REQUIRED)
+message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
+message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
+
+set(WDR_PYTHON_PACKAGE_NAME "wanderary")
+set(WDR_PYTHON_PACKAGE_VERSION "0.1.0")
 
 MESSAGE("OPENCV VERSION: ${OpenCV_VERSION}")
 
@@ -34,11 +41,9 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
-
-MESSAGE( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
-
-MESSAGE( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
+message( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
+message( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
+message( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
 
 add_subdirectory(3rdparty)
 

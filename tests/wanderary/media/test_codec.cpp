@@ -86,8 +86,6 @@ TEST(MediaCodecJpg, CodecEncode) {
   const std::string gtpath = "../../test_data/media/zidane_encode.bin";
   const cv::Mat img = cv::imread(imgpath);
   const auto gt_enc = wdr::ReadBytesFromFile<uchar>(gtpath);
-  cv::Mat img_yuv;
-  cv::cvtColor(img, img_yuv, cv::COLOR_BGR2YUV);
 
   cv::Mat nv12;
   wdr::BGRToNV12(img, &nv12);

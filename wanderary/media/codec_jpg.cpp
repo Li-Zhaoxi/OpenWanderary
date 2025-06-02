@@ -46,11 +46,12 @@ void MediaCodecJpg::prepare_queue_input(const cv::Mat &frame, CodecContext *ctx,
     buf->vframe_buf.pts = 0;
     memcpy(buf->vframe_buf.vir_ptr[0], frame.data, nv12_size_);
   } else {
-    CHECK_GE(buf->vstream_buf.size, nv12_size_);
+    const int data_size = frame.total() * frame.elemSize();
+    CHECK_LE(data_size, nv12_size_);
     buf->type = MC_VIDEO_STREAM_BUFFER;
-    buf->vstream_buf.size = nv12_size_;
+    buf->vstream_buf.size = data_size;
     buf->vstream_buf.stream_end = 0;
-    memcpy(buf->vstream_buf.vir_ptr, frame.data, nv12_size_);
+    memcpy(buf->vstream_buf.vir_ptr, frame.data, data_size);
   }
 }
 

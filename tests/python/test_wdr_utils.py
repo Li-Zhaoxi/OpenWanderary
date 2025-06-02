@@ -1,6 +1,7 @@
 import common  # noqa
 import cv2
 import numpy as np
+import pytest
 
 from wanderary import cvtBGR2NV12, cvtNV12ToYUV444
 
@@ -20,5 +21,4 @@ def test_convertor_bgr2nv12():
 
 
 if __name__ == "__main__":
-    test_convertor_bgr2nv12()
-    # pytest.main(["-s", __file__])
+    pytest.main(["-s", __file__])

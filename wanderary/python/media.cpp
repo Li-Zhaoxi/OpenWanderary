@@ -52,7 +52,7 @@ void BindMediaCodecBase(py::module *m) {
   codec_class.def(py::init<MediaCodecID, bool>(), py::arg("codec_id"),
                   py::arg("encode"));
   codec_class.def("init", &MediaCodecBase::init);
-  codec_class.def("close", &MediaCodecBase::init);
+  codec_class.def("close", &MediaCodecBase::close);
   codec_class.def(
       "process",
       [](MediaCodecBase *self, const py::array_t<uint8_t> &frame)

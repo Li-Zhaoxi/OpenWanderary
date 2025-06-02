@@ -6,14 +6,14 @@
 template <typename DType>
 cv::Mat PyArray2CvMat(const py::array_t<DType> &pydata) {
   py::buffer_info buf = pydata.request();
-
-  if (buf.ndim != 2 && buf.ndim != 3) {
+  if (buf.ndim != 1 && buf.ndim != 2 && buf.ndim != 3) {
     std::stringstream ss;
     ss << "The input array must be 2D/3D, but it is " << buf.ndim << "D.";
     py::set_error(PyExc_ValueError, ss.str().c_str());
+    LOG(FATAL) << ss.str();
   }
-  const int rows = buf.shape[0];
-  const int cols = buf.shape[1];
+  const int rows = buf.ndim == 1 ? 1 : buf.shape[0];
+  const int cols = buf.ndim == 1 ? buf.shape[0] : buf.shape[1];
   const int chls = buf.ndim == 3 ? buf.shape[2] : 1;
 
   cv::Mat mat(rows, cols, CV_MAKETYPE(cv::DataType<DType>::type, chls));
@@ -24,6 +24,7 @@ cv::Mat PyArray2CvMat(const py::array_t<DType> &pydata) {
     ss << "The input array size is not correct. Expected " << bytesize
        << " bytes, but got " << buf.itemsize * buf.size << " bytes.";
     py::set_error(PyExc_ValueError, ss.str().c_str());
+    LOG(FATAL) << ss.str();
   }
   if (!(pydata.flags() & py::array::c_style)) {
     py::array_t<DType, py::array::c_style> tmpdata = pydata;
@@ -52,6 +53,7 @@ py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata) {
     ss << "The input Mat size is not correct. Got " << rows << "x" << cols
        << "x" << chls << ".";
     py::set_error(PyExc_ValueError, ss.str().c_str());
+    LOG(FATAL) << ss.str();
   }
 
   py::array_t<DType> pydata;
@@ -66,6 +68,7 @@ py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata) {
     ss << "The input Mat size is not correct. Got " << buf.size
        << " bytes, but expected " << bytesize << " bytes.";
     py::set_error(PyExc_ValueError, ss.str().c_str());
+    LOG(FATAL) << ss.str();
   }
   if (cvdata.isContinuous()) {
     memcpy(buf.ptr, cvdata.data, bytesize);

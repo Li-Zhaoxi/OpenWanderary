@@ -7,6 +7,9 @@ rely:
 	pre-commit install; \
 	bash build_3rdpary.sh;
 
+download:
+	bash tests/test_data/models/download_models.sh;
+
 debug:
 	cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug; \
 	make -j6 -C build/;

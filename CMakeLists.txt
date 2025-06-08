@@ -50,6 +50,10 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
+link_directories(
+  /usr/hobot/lib/
+)
+
 message( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
 message( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
 message( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
@@ -68,7 +72,7 @@ write_basic_package_version_file(
 )
 
 install(
-  TARGETS wdr_utils wdr_media wdr_testing
+  TARGETS wdr_utils wdr_media wdr_dnn wdr_testing
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib

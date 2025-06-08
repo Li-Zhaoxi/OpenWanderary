@@ -7,6 +7,7 @@ include_directories(
 
 add_subdirectory(utils)
 add_subdirectory(media)
+add_subdirectory(dnn)
 add_subdirectory(Core)
 add_subdirectory(DNN)
 add_subdirectory(BPU)

@@ -23,6 +23,7 @@
 ```
 git clone --recursive https://github.com/Li-Zhaoxi/OpenWanderary.git
 cd OpenWanderary
+make download # 下载数据(UT依赖数据)
 make rely # 编译依赖项
 make debug # 编译debug版本
 ```

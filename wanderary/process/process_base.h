@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,7 @@ class ProcessBase {
 
   virtual void Forward(const cv::Mat &input, cv::Mat *output,
                        ProcessRecorder *recorder = nullptr) const;
+  const std::string &name() const { return name_; }
 
  private:
   const std::string name_;
@@ -34,6 +36,8 @@ class ProcessManager {
   explicit ProcessManager(const utils::json &cfg);
   void Forward(const cv::Mat &input, cv::Mat *output,
                ProcessRecorder *recorder = nullptr) const;
+
+  static std::set<std::string> RegisteredNames();
 
  private:
   std::vector<std::unique_ptr<ProcessBase>> processes_;

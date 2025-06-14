@@ -25,14 +25,8 @@ git clone --recursive https://github.com/Li-Zhaoxi/OpenWanderary.git
 cd OpenWanderary
 make download # 下载数据(UT依赖数据)
 make rely # 编译依赖项
-make debug # 编译debug版本
-```
-
-
-
-依赖库安装，可能也有一些没在这里体现，比如glog,gflags等
-```
-sudo apt-get install libopencv-dev libboost1.71-all-dev
+make debug # 编译debug版本,
+make release # 编译release版本
 ```
 
 

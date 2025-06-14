@@ -8,6 +8,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <pybind11_json/pybind11_json.hpp>
+
 namespace py = pybind11;
 
 template <typename DType>
@@ -18,5 +20,6 @@ py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata);
 
 void BindMedia(py::module *m);
 void BindUtils(py::module *m);
+void BindProcess(py::module *m);
 
 #include <wanderary/python/impl/wdr.hpp>

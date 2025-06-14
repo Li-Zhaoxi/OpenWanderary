@@ -1,9 +1,12 @@
 #include "wanderary/testing/data_checking.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
 #include <glog/logging.h>
+
+#include "wanderary/utils/common_utils.h"
 
 namespace wdr::testing {
 
@@ -28,6 +31,25 @@ void Check(const cv::Mat &pred, const cv::Mat &gt, double eps,
     for (int i = 0; i < channels.size(); i++)
       EXPECT_EQ(cv::countNonZero(channels[i]), 0)
           << "(chl idx: " << i << ")->" << msg;
+  }
+}
+
+void Check(const std::set<std::string> &pred, const std::set<std::string> &gt,
+           const std::string &msg) {
+  EXPECT_EQ(pred.size(), gt.size()) << msg;
+  if (pred.size() != gt.size()) return;
+  auto tmp = pred;
+  for (const auto &item : gt) {
+    EXPECT_TRUE(wdr::contains(pred, item))
+        << "Cannot find " << item << ". " << msg;
+    tmp.erase(item);
+  }
+
+  if (!tmp.empty()) {
+    std::stringstream ss;
+    ss << "Pred Remaining: ";
+    for (const auto &item : tmp) ss << item << ",";
+    EXPECT_TRUE(false) << ss.str() << msg;
   }
 }
 

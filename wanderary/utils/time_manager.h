@@ -18,6 +18,8 @@ class TimerManager {
 
   int getDuration(const std::string& phase) const;
 
+  void reset();
+
  private:
   mutable std::mutex mutex_;
   std::map<std::string, std::chrono::steady_clock::duration> durations;

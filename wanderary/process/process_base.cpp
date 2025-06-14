@@ -1,6 +1,12 @@
 #include "wanderary/process/process_base.h"
 
+#include <set>
 #include <string>
+
+#include "wanderary/utils/time_manager.h"
+
+using AutoScopeTimer = wdr::AutoScopeTimer;
+
 namespace wdr::proc {
 
 ProcessBase::ProcessBase(const std::string &name) : name_(name) {}
@@ -23,6 +29,22 @@ ProcessManager::ProcessManager(const utils::json &cfg) {
         ClassRegistry<ProcessBase>::createInstance(proc_name, proc_cfg));
     LOG(INFO) << "Add process: " << proc_name;
   }
+}
+
+void ProcessManager::Forward(const cv::Mat &input, cv::Mat *output,
+                             ProcessRecorder *recorder) const {
+  for (const auto &process : processes_) {
+    const std::string proc_phase = this->manger_name_ + "/" + process->name();
+    {
+      AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
+      process->Forward(input, output, recorder);
+    }
+    wdr::GlobalTimerManager().printStatistics(proc_phase);
+  }
+}
+
+std::set<std::string> ProcessManager::RegisteredNames() {
+  return ClassRegistry<wdr::proc::ProcessBase>::RegisteredClassNames();
 }
 
 }  // namespace wdr::proc

@@ -2,6 +2,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -27,10 +28,10 @@ class ClassRegistry {
     return it != registry().end() ? it->second(cfg) : nullptr;
   }
 
-  static std::vector<std::string> RegisteredClassNames() {
+  static std::set<std::string> RegisteredClassNames() {
     Base::make_active();
-    std::vector<std::string> names;
-    for (auto& item : registry()) names.push_back(item.first);
+    std::set<std::string> names;
+    for (auto& item : registry()) names.insert(item.first);
     return names;
   }
 

@@ -34,6 +34,7 @@ void BindTimeManager(py::module *m) {
   timer_class.def(py::init<>());
   timer_class.def("start", &TimerManager::start, py::arg("phase"));
   timer_class.def("stop", &TimerManager::stop, py::arg("phase"));
+  timer_class.def("reset", &TimerManager::reset);
   timer_class.def("printStatistics",
                   py::overload_cast<const std::string &>(
                       &TimerManager::printStatistics, py::const_),

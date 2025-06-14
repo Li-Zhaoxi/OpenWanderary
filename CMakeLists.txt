@@ -72,7 +72,7 @@ write_basic_package_version_file(
 )
 
 install(
-  TARGETS wdr_utils wdr_media wdr_dnn wdr_testing
+  TARGETS wdr_utils wdr_media wdr_dnn wdr_testing wdr_process
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib

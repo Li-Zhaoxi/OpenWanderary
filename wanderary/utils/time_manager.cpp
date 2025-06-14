@@ -44,6 +44,12 @@ void TimerManager::printStatistics() const {
   }
 }
 
+void TimerManager::reset() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  durations.clear();
+  startTimes.clear();
+}
+
 TimerManager& GlobalTimerManager() {
   static TimerManager timerManager;
   return timerManager;

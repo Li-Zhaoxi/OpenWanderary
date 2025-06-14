@@ -23,7 +23,7 @@ class FormatImage : public ProcessBase {
  public:
   explicit FormatImage(const utils::json &cfg);
 
-  void Forward(const cv::Mat &input, cv::Mat *output,
+  void Forward(cv::Mat *data,
                ProcessRecorder *recorder = nullptr) const override;
 
  private:

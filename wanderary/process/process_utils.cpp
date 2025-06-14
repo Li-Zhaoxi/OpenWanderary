@@ -4,6 +4,15 @@
 
 namespace wdr::proc {
 
+wdr::utils::json ImageAffineParms::dump() const {
+  wdr::utils::json res;
+  res["x_scale"] = x_scale;
+  res["y_scale"] = y_scale;
+  res["x_shift"] = x_shift;
+  res["y_shift"] = y_shift;
+  return res;
+}
+
 ImageAffineParms ResizeImage(const cv::Mat &img, const cv::Size &input_wh,
                              cv::Mat *out) {
   cv::resize(img, *out, input_wh, 0, 0, cv::INTER_NEAREST);

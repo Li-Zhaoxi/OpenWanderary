@@ -5,8 +5,7 @@
 #include "wanderary/testing/data_checking.h"
 
 TEST(ProcessBase, TestRegisterClass) {
-  const auto reg_names =
-      ClassRegistry<wdr::proc::ProcessBase>::RegisteredClassNames();
+  const auto reg_names = wdr::proc::ProcessManager::RegisteredNames();
 
   std::stringstream ss;
   for (const auto &name : reg_names) ss << name << ", ";

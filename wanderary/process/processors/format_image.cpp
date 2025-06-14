@@ -2,6 +2,7 @@
 #include "wanderary/process/processors/format_image.h"
 
 #include <string>
+#include <utility>
 
 #include "wanderary/process/process_base.h"
 #include "wanderary/utils/convertor.h"
@@ -17,33 +18,34 @@ FormatImage::FormatImage(const utils::json &cfg) : ProcessBase("FormatImage") {
   cfg_.cvt_nv12_ = utils::GetData<bool>(cfg, "cvt_nv12");
 }
 
-void FormatImage::Forward(const cv::Mat &input, cv::Mat *output,
-                          ProcessRecorder *recorder) const {
-  DCHECK(output != nullptr && recorder != nullptr);
+void FormatImage::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
+  DCHECK(data != nullptr);
   cv::Mat tmp;
-  cv::Mat &usage_mat = cfg_.cvt_nv12_ ? tmp : *output;
+  ImageAffineParms parms;
 
   switch (cfg_.type_) {
     case ImageFormatType::kNone:
-      input.copyTo(usage_mat);
-      recorder->affine = ImageAffineParms();
+      tmp = *data;
+      parms = ImageAffineParms();
       break;
     case ImageFormatType::kResize:
-      recorder->affine =
-          ResizeImage(input, cv::Size(cfg_.width_, cfg_.height_), &usage_mat);
+      parms = ResizeImage(*data, cv::Size(cfg_.width_, cfg_.height_), &tmp);
       break;
     case ImageFormatType::kLetterBox:
-      recorder->affine = LetterBoxImage(
-          input, cv::Size(cfg_.width_, cfg_.height_), &usage_mat);
+      parms = LetterBoxImage(*data, cv::Size(cfg_.width_, cfg_.height_), &tmp);
+      break;
     default:
       LOG(FATAL) << "Unsupported image format type: "
                  << ImageFormatType2str(cfg_.type_);
       break;
   }
 
-  if (cfg_.cvt_nv12_) {
-    wdr::BGRToNV12(usage_mat, output);
-  }
+  if (cfg_.cvt_nv12_)
+    wdr::BGRToNV12(tmp, data);
+  else
+    *data = std::move(tmp);
+
+  if (recorder) recorder->affine = std::move(parms);
 }
 
 REGISTER_DERIVED_CLASS(ProcessBase, FormatImage)

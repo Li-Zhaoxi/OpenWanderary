@@ -11,8 +11,7 @@ namespace wdr::proc {
 
 ProcessBase::ProcessBase(const std::string &name) : name_(name) {}
 
-void ProcessBase::Forward(const cv::Mat &input, cv::Mat *output,
-                          ProcessRecorder *recorder) const {
+void ProcessBase::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
   LOG(FATAL) << "Not implemented";
 }
 
@@ -31,13 +30,12 @@ ProcessManager::ProcessManager(const utils::json &cfg) {
   }
 }
 
-void ProcessManager::Forward(const cv::Mat &input, cv::Mat *output,
-                             ProcessRecorder *recorder) const {
+void ProcessManager::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
   for (const auto &process : processes_) {
     const std::string proc_phase = this->manger_name_ + "/" + process->name();
     {
       AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
-      process->Forward(input, output, recorder);
+      process->Forward(data, recorder);
     }
     wdr::GlobalTimerManager().printStatistics(proc_phase);
   }

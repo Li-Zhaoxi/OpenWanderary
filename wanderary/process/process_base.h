@@ -23,7 +23,7 @@ class ProcessBase {
 
   static void make_active();
 
-  virtual void Forward(const cv::Mat &input, cv::Mat *output,
+  virtual void Forward(cv::Mat *data,
                        ProcessRecorder *recorder = nullptr) const;
   const std::string &name() const { return name_; }
 
@@ -34,8 +34,7 @@ class ProcessBase {
 class ProcessManager {
  public:
   explicit ProcessManager(const utils::json &cfg);
-  void Forward(const cv::Mat &input, cv::Mat *output,
-               ProcessRecorder *recorder = nullptr) const;
+  void Forward(cv::Mat *data, ProcessRecorder *recorder = nullptr) const;
 
   static std::set<std::string> RegisteredNames();
 

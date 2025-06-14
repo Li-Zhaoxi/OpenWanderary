@@ -20,13 +20,13 @@ void BindProcessManager(py::module *m) {
   proc_class.def(py::init<const wdr::utils::json &>(), py::arg("config"));
   proc_class.def(
       "Forward",
-      [](ProcessManager *self, const py::array_t<uchar> &bgr,
+      [](ProcessManager *self, const py::array_t<uchar> &pydata,
          ProcessRecorder *recorder) -> py::array_t<uchar> {
-        cv::Mat res;
-        self->Forward(PyArray2CvMat<uchar>(bgr), &res, recorder);
-        return CvMat2PyArray<uchar>(res);
+        cv::Mat data = PyArray2CvMat<uchar>(pydata);
+        self->Forward(&data, recorder);
+        return CvMat2PyArray<uchar>(data);
       },
-      py::arg("bgr"), py::arg("recorder") = nullptr);
+      py::arg("data"), py::arg("recorder") = nullptr);
 
   proc_class.def_static("RegisteredNames", &ProcessManager::RegisteredNames);
 }

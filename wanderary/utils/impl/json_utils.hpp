@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
+#include <glog/logging.h>
 #include <wanderary/utils/json_utils.h>
 
 namespace wdr::utils {

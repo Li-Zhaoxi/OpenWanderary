@@ -16,6 +16,8 @@ class TimerManager {
 
   void printStatistics() const;
 
+  int getDuration(const std::string& phase) const;
+
  private:
   mutable std::mutex mutex_;
   std::map<std::string, std::chrono::steady_clock::duration> durations;
@@ -35,5 +37,7 @@ class AutoScopeTimer {
   TimerManager* manager_{nullptr};
   const std::string phase_;
 };
+
+TimerManager& GlobalTimerManager();
 
 }  // namespace wdr

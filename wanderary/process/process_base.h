@@ -14,6 +14,7 @@ namespace wdr::proc {
 
 struct ProcessRecorder {
   std::optional<ImageAffineParms> affine{std::nullopt};
+  std::optional<DequantScales> dequant_scales{std::nullopt};
 };
 
 class ProcessBase {
@@ -23,8 +24,15 @@ class ProcessBase {
 
   static void make_active();
 
+  // 用于输入预处理
   virtual void Forward(cv::Mat *data,
                        ProcessRecorder *recorder = nullptr) const;
+
+  // 用于输出特征后处理
+  virtual void Forward(const std::vector<cv::Mat> &feats,
+                       std::vector<cv::Rect> *box2ds,
+                       ProcessRecorder *recorder = nullptr) const;
+
   const std::string &name() const { return name_; }
 
  private:

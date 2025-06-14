@@ -1,6 +1,8 @@
 #include "wanderary/process/process_utils.h"
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 namespace wdr::proc {
 
@@ -52,6 +54,39 @@ ImageAffineParms LetterBoxImage(const cv::Mat &img, const cv::Size &input_wh,
                      cv::BORDER_CONSTANT, cv::Scalar(127, 127, 127));
 
   return parms;
+}
+
+bool CheckFeatureDimValid(const cv::Mat &feat, const std::vector<int> &dims,
+                          int dtype) {
+  // 数据类型不匹配
+  if (feat.depth() != dtype) return false;
+
+  // 高维特征 row和col都为-1
+  if (feat.rows >= 0 || feat.cols >= 0) return false;
+
+  // 维度不匹配
+  const int dim = dims.size();
+  if (feat.size.dims() != dim) return false;
+
+  for (int i = 0; i < dim; ++i) {
+    if (dims[i] < 0) continue;  // -1表示不检查
+    if (feat.size[i] != dims[i]) return false;
+  }
+
+  return true;
+}
+
+std::string LogFeatureDim(const cv::Mat &feat) {
+  std::stringstream ss;
+  ss << "rows: " << feat.rows << ", cols: " << feat.cols
+     << ", dtype: " << feat.depth() << ". ";
+  const int dim = feat.size.dims();
+  ss << "dims: ";
+  for (int i = 0; i < dim; ++i) {
+    ss << feat.size[i] << ",";
+  }
+
+  return ss.str();
 }
 
 }  // namespace wdr::proc

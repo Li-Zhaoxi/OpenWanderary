@@ -28,7 +28,7 @@ TEST(ProcessBase, TestFormatImage) {
   const std::string gtpath = "../../test_data/process/zidane_fmtimg_nv12.bin";
 
   cv::Mat img = cv::imread(imgpath, cv::IMREAD_COLOR);
-  const auto gt_enc = wdr::ReadBytesFromFile<uchar>(gtpath);
+  const auto fmtgt = wdr::ReadBytesFromFile<uchar>(gtpath);
 
   FormatImage proc(wdr::utils::json::parse(cfg));
   ProcessRecorder recorder;
@@ -45,5 +45,5 @@ TEST(ProcessBase, TestFormatImage) {
   EXPECT_EQ(parms.x_shift, 0);
   EXPECT_EQ(parms.y_shift, 140);
 
-  wdr::testing::Check<uchar>(wdr::testing::Convertor(img), gt_enc, 0);
+  wdr::testing::Check<uchar>(wdr::testing::Convertor(img), fmtgt, 0);
 }

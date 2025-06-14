@@ -2,6 +2,7 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "wanderary/utils/time_manager.h"
 
@@ -12,6 +13,12 @@ namespace wdr::proc {
 ProcessBase::ProcessBase(const std::string &name) : name_(name) {}
 
 void ProcessBase::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
+  LOG(FATAL) << "Not implemented";
+}
+
+void ProcessBase::Forward(const std::vector<cv::Mat> &feats,
+                          std::vector<cv::Rect> *box2ds,
+                          ProcessRecorder *recorder) const {
   LOG(FATAL) << "Not implemented";
 }
 

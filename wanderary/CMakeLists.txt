@@ -6,6 +6,7 @@ include_directories(
 
 
 add_subdirectory(utils)
+add_subdirectory(process)
 add_subdirectory(media)
 add_subdirectory(dnn)
 add_subdirectory(Core)

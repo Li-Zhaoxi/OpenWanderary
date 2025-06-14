@@ -1,0 +1,5 @@
+file (GLOB_RECURSE SOURCES "*.cpp")
+file (GLOB_RECURSE PROCESSOR_SOURCES "processors/*.cpp")
+set(LIBRARY wdr_process)
+add_library(${LIBRARY} SHARED ${SOURCES} ${PROCESSOR_SOURCES})
+target_link_libraries(${LIBRARY} wdr_utils)

@@ -6,6 +6,7 @@
 
 #include <glog/logging.h>
 #include <wanderary/process/process_utils.h>
+#include <wanderary/structs/box.h>
 #include <wanderary/utils/class_registry.h>
 
 #include <opencv2/opencv.hpp>
@@ -30,7 +31,7 @@ class ProcessBase {
 
   // 用于输出特征后处理
   virtual void Forward(const std::vector<cv::Mat> &feats,
-                       std::vector<cv::Rect> *box2ds,
+                       std::vector<wdr::Box2D> *box2ds,
                        ProcessRecorder *recorder = nullptr) const;
 
   const std::string &name() const { return name_; }
@@ -41,7 +42,7 @@ class ProcessBase {
 
 class ProcessManager {
  public:
-  explicit ProcessManager(const utils::json &cfg);
+  explicit ProcessManager(const json &cfg);
   void Forward(cv::Mat *data, ProcessRecorder *recorder = nullptr) const;
 
   static std::set<std::string> RegisteredNames();

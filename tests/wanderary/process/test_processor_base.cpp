@@ -12,5 +12,5 @@ TEST(ProcessBase, TestRegisterClass) {
   LOG(INFO) << "Registered classes: " << reg_names.size()
             << ", names: " << ss.str();
 
-  wdr::testing::Check({"FormatImage"}, reg_names);
+  wdr::testing::Check({"FormatImage", "ConvertYoloFeature"}, reg_names);
 }

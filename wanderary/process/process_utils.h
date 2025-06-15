@@ -10,16 +10,23 @@
 namespace wdr::proc {
 
 struct ImageAffineParms {
+  ImageAffineParms() = default;
+  ImageAffineParms(double x_scale, double y_scale, int x_shift, int y_shift)
+      : x_scale(x_scale),
+        y_scale(y_scale),
+        x_shift(x_shift),
+        y_shift(y_shift) {}
   double x_scale = 1;
   double y_scale = 1;
   int x_shift = 0;
   int y_shift = 0;
 
-  wdr::utils::json dump() const;
+  wdr::json dump() const;
 };
 
 struct DequantScales {
   std::map<int, std::vector<float>> de_scales;
+  std::map<int, float> box_scales;
 };
 
 // 缩放图像

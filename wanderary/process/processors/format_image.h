@@ -21,7 +21,7 @@ struct FormatImageConfig {
 
 class FormatImage : public ProcessBase {
  public:
-  explicit FormatImage(const utils::json &cfg);
+  explicit FormatImage(const json &cfg);
 
   void Forward(cv::Mat *data,
                ProcessRecorder *recorder = nullptr) const override;

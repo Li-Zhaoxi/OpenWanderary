@@ -6,8 +6,8 @@
 
 namespace wdr::proc {
 
-wdr::utils::json ImageAffineParms::dump() const {
-  wdr::utils::json res;
+wdr::json ImageAffineParms::dump() const {
+  wdr::json res;
   res["x_scale"] = x_scale;
   res["y_scale"] = y_scale;
   res["x_shift"] = x_shift;

@@ -3,7 +3,7 @@ default_language_version:
 
 fail_fast: true
 
-exclude: '.*.bin$|.*.jpg$'
+exclude: '.*.bin$|.*.jpg$|.*.json$'
 
 repos:
   - repo: local

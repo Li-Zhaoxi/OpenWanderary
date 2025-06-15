@@ -17,7 +17,7 @@ void BindImageAffineParms(py::module *m) {
 
 void BindProcessManager(py::module *m) {
   py::class_<ProcessManager> proc_class(*m, "ProcessManager");
-  proc_class.def(py::init<const wdr::utils::json &>(), py::arg("config"));
+  proc_class.def(py::init<const wdr::json &>(), py::arg("config"));
   proc_class.def(
       "Forward",
       [](ProcessManager *self, const py::array_t<uchar> &pydata,

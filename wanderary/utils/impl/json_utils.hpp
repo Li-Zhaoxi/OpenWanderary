@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 #include <wanderary/utils/json_utils.h>
 
-namespace wdr::utils {
+namespace wdr {
 
 template <typename DType = json>
 DType GetData(const json &data, const std::string &key,
@@ -25,4 +25,4 @@ DType GetData(const json &data, const std::string &key,
   return DType();  // compiler should not reach here
 }
 
-}  // namespace wdr::utils
+}  // namespace wdr

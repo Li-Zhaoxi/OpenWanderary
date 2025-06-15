@@ -11,11 +11,11 @@
 
 namespace wdr::proc {
 
-FormatImage::FormatImage(const utils::json &cfg) : ProcessBase("FormatImage") {
-  cfg_.type_ = str2ImageFormatType(utils::GetData<std::string>(cfg, "type"));
-  cfg_.width_ = utils::GetData<int>(cfg, "width");
-  cfg_.height_ = utils::GetData<int>(cfg, "height");
-  cfg_.cvt_nv12_ = utils::GetData<bool>(cfg, "cvt_nv12");
+FormatImage::FormatImage(const json &cfg) : ProcessBase("FormatImage") {
+  cfg_.type_ = str2ImageFormatType(wdr::GetData<std::string>(cfg, "type"));
+  cfg_.width_ = wdr::GetData<int>(cfg, "width");
+  cfg_.height_ = wdr::GetData<int>(cfg, "height");
+  cfg_.cvt_nv12_ = wdr::GetData<bool>(cfg, "cvt_nv12");
 }
 
 void FormatImage::Forward(cv::Mat *data, ProcessRecorder *recorder) const {

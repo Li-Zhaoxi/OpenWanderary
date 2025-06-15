@@ -11,9 +11,9 @@
 template <typename Base>
 class ClassRegistry {
  public:
-  using Json = wdr::utils::json;
+  using Json = wdr::json;
   using CreatorFunc =
-      std::function<std::unique_ptr<Base>(const wdr::utils::json& cfg)>;
+      std::function<std::unique_ptr<Base>(const wdr::json& cfg)>;
 
   // 注册一个Class
   static void registerClass(const std::string& name, CreatorFunc creator) {
@@ -22,7 +22,7 @@ class ClassRegistry {
 
   // 基于Class名创建一个实例
   static std::unique_ptr<Base> createInstance(const std::string& name,
-                                              const wdr::utils::json& cfg) {
+                                              const wdr::json& cfg) {
     Base::make_active();
     auto it = registry().find(name);
     return it != registry().end() ? it->second(cfg) : nullptr;
@@ -43,14 +43,13 @@ class ClassRegistry {
 };
 
 // 注册Class，Class定义之后，再调用这个宏即可
-#define REGISTER_DERIVED_CLASS(Base, Derived)         \
-  class Derived##Register##From##Base {               \
-   public:                                            \
-    Derived##Register##From##Base() {                 \
-      ClassRegistry<Base>::registerClass(             \
-          #Derived, [](const wdr::utils::json& cfg) { \
-            return std::make_unique<Derived>(cfg);    \
-          });                                         \
-    }                                                 \
-  };                                                  \
+#define REGISTER_DERIVED_CLASS(Base, Derived)                                 \
+  class Derived##Register##From##Base {                                       \
+   public:                                                                    \
+    Derived##Register##From##Base() {                                         \
+      ClassRegistry<Base>::registerClass(#Derived, [](const wdr::json& cfg) { \
+        return std::make_unique<Derived>(cfg);                                \
+      });                                                                     \
+    }                                                                         \
+  };                                                                          \
   static Derived##Register##From##Base Derived##From##Base_register;

@@ -17,20 +17,19 @@ void ProcessBase::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
 }
 
 void ProcessBase::Forward(const std::vector<cv::Mat> &feats,
-                          std::vector<cv::Rect> *box2ds,
+                          std::vector<wdr::Box2D> *box2ds,
                           ProcessRecorder *recorder) const {
   LOG(FATAL) << "Not implemented";
 }
 
 void ProcessBase::make_active() {}
 
-ProcessManager::ProcessManager(const utils::json &cfg) {
-  manger_name_ = utils::GetData<std::string>(cfg, "manger_name");
-  const auto process_cfgs =
-      utils::GetData<std::vector<utils::json>>(cfg, "processes");
+ProcessManager::ProcessManager(const json &cfg) {
+  manger_name_ = wdr::GetData<std::string>(cfg, "manger_name");
+  const auto process_cfgs = wdr::GetData<std::vector<json>>(cfg, "processes");
   for (const auto &process_cfg : process_cfgs) {
-    const auto proc_name = utils::GetData<std::string>(process_cfg, "name");
-    const auto proc_cfg = utils::GetData<utils::json>(process_cfg, "config");
+    const auto proc_name = wdr::GetData<std::string>(process_cfg, "name");
+    const auto proc_cfg = wdr::GetData<json>(process_cfg, "config");
     processes_.push_back(
         ClassRegistry<ProcessBase>::createInstance(proc_name, proc_cfg));
     LOG(INFO) << "Add process: " << proc_name;

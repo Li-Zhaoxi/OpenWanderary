@@ -68,7 +68,7 @@ ENUM_NUMBERED_REGISTER(
 )
 ENUM_CONVERSION_REGISTER(HBDNNDataType, HBDNNDataType::kNONE, "layout_nhwc")
 
-using Json = wdr::utils::json;
+using Json = wdr::json;
 
 Json dump(const hbDNNQuantiShift &dtype);
 Json dump(const hbDNNTensorShape &dtype);

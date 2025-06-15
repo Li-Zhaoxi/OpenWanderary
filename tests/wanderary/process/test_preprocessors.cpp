@@ -22,7 +22,7 @@ TEST(ProcessBase, TestFormatImage) {
     "cvt_nv12": true
   })";
 
-  TimeManager time_manaer;
+  TimeManager time_manager;
 
   const std::string imgpath = "../../test_data/media/zidane.jpg";
   const std::string gtpath = "../../test_data/process/zidane_fmtimg_nv12.bin";
@@ -30,12 +30,12 @@ TEST(ProcessBase, TestFormatImage) {
   cv::Mat img = cv::imread(imgpath, cv::IMREAD_COLOR);
   const auto fmtgt = wdr::ReadBytesFromFile<uchar>(gtpath);
 
-  FormatImage proc(wdr::utils::json::parse(cfg));
+  FormatImage proc(wdr::json::parse(cfg));
   ProcessRecorder recorder;
-  time_manaer.start("FormatImage");
+  time_manager.start("FormatImage");
   proc.Forward(&img, &recorder);
-  time_manaer.stop("FormatImage");
-  time_manaer.printStatistics();
+  time_manager.stop("FormatImage");
+  time_manager.printStatistics();
 
   ASSERT_TRUE(recorder.affine.has_value());
   const auto &parms = recorder.affine.value();

@@ -12,8 +12,10 @@ IncludeCategories:
     Priority:        3
   - Regex:           '^<opencv2/.*\.hpp>$' # opencv 头文件
     Priority:        3
-  - Regex:           '^".*\.h"$'        # 项目内头文件
+  - Regex:           '^<Eigen/.*>$' # Eigen 头文件
     Priority:        4
+  - Regex:           '^".*\.h"$'        # 项目内头文件
+    Priority:        5
 SortIncludes: CaseSensitive             # 确保优先级生效
 SpacesBeforeTrailingComments: 2  # 行尾注释前固定保留 2 个空格
 AccessModifierOffset: -1  # 根据基础风格调整数值，使 `public` 缩进 1 空格

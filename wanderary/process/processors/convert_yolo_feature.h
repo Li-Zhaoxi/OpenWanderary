@@ -11,8 +11,8 @@ namespace wdr::proc {
 struct CvtYoloConfig {
   int class_num_ = 80;
   int reg_num_ = 16;
-  double nms_thres_ = 0.7;
-  double score_thres_ = 0.25;
+  float nms_thres_ = 0.7;
+  float score_thres_ = 0.25;
 
   // 以下变量不需要指定
   double conf_thres_ = 0;
@@ -20,14 +20,18 @@ struct CvtYoloConfig {
 
 class ConvertYoloFeature : public ProcessBase {
  public:
-  explicit ConvertYoloFeature(const utils::json &cfg);
+  explicit ConvertYoloFeature(const json &cfg);
+  ~ConvertYoloFeature() override;
 
-  void Forward(const std::vector<cv::Mat> &feats, std::vector<cv::Rect> *box2ds,
+  void Forward(const std::vector<cv::Mat> &feats,
+               std::vector<wdr::Box2D> *box2ds,
                ProcessRecorder *recorder = nullptr) const override;
 
  private:
-  float ConvertOne(const float *fscore, const int *fbox, const float *boxscles,
-                   cv::Rect *box2d) const;
+  float ConvertOne(int idxh, int idxw, const float *fscore, const int *fbox,
+                   const float *boxdescles, float boxscale, cv::Rect2d *box2d,
+                   int *idx_max_score) const;
+
   CvtYoloConfig cfg_;
   std::vector<float> box_weights_;
 };

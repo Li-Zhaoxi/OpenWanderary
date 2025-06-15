@@ -28,6 +28,7 @@ find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
 find_package(pybind11 REQUIRED)
 find_package(pybind11_json REQUIRED)
+find_package(TBB REQUIRED)
 message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
 
@@ -72,7 +73,7 @@ write_basic_package_version_file(
 )
 
 install(
-  TARGETS wdr_utils wdr_media wdr_dnn wdr_testing wdr_process
+  TARGETS wdr_utils wdr_structs wdr_media wdr_dnn wdr_testing wdr_process
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib

@@ -69,14 +69,10 @@ void readNets(const std::vector<std::string> &modelpaths,
   CHECK(*pPackedNets == nullptr);
 
   // 从文件初始化初始化Bin文件
-  const int pathnum = modelpaths.size();
-  const char **cpaths = new const char *[pathnum];
-  for (int k = 0; k < pathnum; k++) {
-    CHECK(wdr::path::exist(modelpaths[k], true));
-    cpaths[k] = modelpaths[k].c_str();
-  }
-  CHECK_EQ(hbDNNInitializeFromFiles(pPackedNets, cpaths, pathnum), 0);
-  delete[] cpaths;
+  std::vector<const char *> cpaths;
+  for (const auto &path : modelpaths) cpaths.push_back(path.c_str());
+  CHECK_EQ(hbDNNInitializeFromFiles(pPackedNets, cpaths.data(), cpaths.size()),
+           0);
 
   // 获取所有模型的handles
   netsMap->clear();
@@ -121,39 +117,86 @@ void readNetProperties(const hbDNNHandle_t dnn_handle, bool fetch_input,
   }
 }
 
-void createTensors(const std::vector<hbDNNTensorProperties> &properties,
-                   bool autopadding, std::vector<hbDNNTensor> *tensors) {
-  const int tensornum = properties.size();
-  tensors->resize(tensornum);
-  for (int i = 0; i < tensornum; i++) {
-    auto &usage_tensor = tensors->at(i);
-    usage_tensor.properties = properties[i];
-
-    int memSize = usage_tensor.properties.alignedByteSize;
-    CHECK_EQ(hbSysAllocCachedMem(&usage_tensor.sysMem[0], memSize), 0);
-
-    if (autopadding)
-      usage_tensor.properties.alignedShape = usage_tensor.properties.validShape;
+std::string getTensorName(const hbDNNHandle_t dnn_handle, int index,
+                          bool input) {
+  const char *input_name;
+  if (input) {
+    CHECK_EQ(hbDNNGetInputName(&input_name, dnn_handle, index), 0);
+  } else {
+    CHECK_EQ(hbDNNGetOutputName(&input_name, dnn_handle, index), 0);
   }
+  return std::string(input_name);
 }
 
 void createTensors(const hbDNNHandle_t dnn_handle, bool fetch_input,
-                   bool autopadding, std::vector<hbDNNTensor> *tensors) {
+                   std::vector<hbDNNTensor> *tensors) {
   std::vector<hbDNNTensorProperties> properties;
   readNetProperties(dnn_handle, fetch_input, &properties);
-  createTensors(properties, autopadding, tensors);
+  const int tensornum = properties.size();
+  tensors->resize(tensornum);
+
+  for (int i = 0; i < tensornum; i++) {
+    if (fetch_input) {
+      createInputTensors(properties[i], &tensors->at(i));
+      LOG(INFO) << "Create input tensor: "
+                << getTensorName(dnn_handle, i, /*input = */ true);
+    } else {
+      createOutputTensors(properties[i], &tensors->at(i));
+      LOG(INFO) << "Create output tensor: "
+                << getTensorName(dnn_handle, i, /*input = */ false);
+    }
+  }
 }
 
-void createTensors(const hbDNNTensorProperties &property,
-                   hbDNNTensor *bputensor) {
+void createInputTensors(const hbDNNTensorProperties &property,
+                        hbDNNTensor *bputensor) {
+  const int batch = property.alignedShape.dimensionSize[0];
+  const int batch_size = property.alignedByteSize / batch;
+  const auto tensor_type = property.tensorType;
   bputensor->properties = property;
-  int memSize = bputensor->properties.alignedByteSize;
-  CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0], memSize), 0);
+  auto &tensor_properties = bputensor->properties;
+
+  if (tensor_type == HB_DNN_IMG_TYPE_NV12 ||
+      tensor_type == HB_DNN_IMG_TYPE_NV12_SEPARATE) {
+    tensor_properties.alignedShape = property.validShape;
+    if (tensor_type == HB_DNN_IMG_TYPE_NV12) {
+      /* 分配NV12格式的内存
+        这里失败也没关系，报错后会自动释放。
+        官方分配失败并不会直接退出，因此需要主动释放模型内存
+      */
+      CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0], batch_size * batch),
+               0);
+    } else if (tensor_type == HB_DNN_IMG_TYPE_NV12_SEPARATE) {
+      CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0],
+                                   batch_size * 2 / 3 * batch),
+               0);
+      CHECK_EQ(
+          hbSysAllocCachedMem(&bputensor->sysMem[1], batch_size / 3 * batch),
+          0);
+    } else {
+      LOG(FATAL) << "Unsupported tensor type: " << tensor_type;
+    }
+  } else {
+    const int input_memsize = property.alignedByteSize;
+    CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0], input_memsize), 0);
+    tensor_properties.alignedShape = property.validShape;
+  }
 }
 
-void releaseTensors(std::vector<hbDNNTensor> *tensors) {
+void createOutputTensors(const hbDNNTensorProperties &property,
+                         hbDNNTensor *bputensor) {
+  bputensor->properties = property;
+  const int output_memsize = property.alignedByteSize;
+  CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0], output_memsize), 0);
+}
+
+void releaseTensors(bool input, std::vector<hbDNNTensor> *tensors) {
   for (auto &tensor : *tensors) {
     CHECK_EQ(hbSysFreeMem(&(tensor.sysMem[0])), 0);
+    if (input &&
+        tensor.properties.tensorType == HB_DNN_IMG_TYPE_NV12_SEPARATE) {
+      CHECK_EQ(hbSysFreeMem(&(tensor.sysMem[1])), 0);
+    }
   }
 }
 

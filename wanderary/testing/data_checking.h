@@ -28,6 +28,9 @@ void UnorderedCheck(const std::vector<wdr::Box2D> &pred,
                     const std::vector<wdr::Box2D> &gt, double eps,
                     const std::string &msg = "");
 
+void Check(const wdr::json &pred, const wdr::json &gt, double eps,
+           const std::string &msg = "");
+
 }  // namespace wdr::testing
 
 #include <wanderary/testing/impl/data_checking.hpp>

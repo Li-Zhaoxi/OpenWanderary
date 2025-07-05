@@ -87,16 +87,20 @@ void releaseNets(hbPackedDNNHandle_t *pPackedNets);
 void readNetProperties(const hbDNNHandle_t dnn_handle, bool fetch_input,
                        std::vector<hbDNNTensorProperties> *properties);
 
+// 返回模型Tensor名称
+std::string getTensorName(const hbDNNHandle_t dnn_handle, int index,
+                          bool input);
+
 // 内存分配
-void createTensors(const std::vector<hbDNNTensorProperties> &properties,
-                   bool autopadding, std::vector<hbDNNTensor> *tensors);
 void createTensors(const hbDNNHandle_t dnn_handle, bool fetch_input,
-                   bool autopadding, std::vector<hbDNNTensor> *tensors);
-void createTensors(const hbDNNTensorProperties &property,
-                   hbDNNTensor *bputensor);
+                   std::vector<hbDNNTensor> *tensors);
+void createInputTensors(const hbDNNTensorProperties &property,
+                        hbDNNTensor *bputensor);
+void createOutputTensors(const hbDNNTensorProperties &property,
+                         hbDNNTensor *bputensor);
 
 // 内存释放
-void releaseTensors(std::vector<hbDNNTensor> *tensors);
+void releaseTensors(bool input, std::vector<hbDNNTensor> *tensors);
 
 // 内存刷新，若upload=true,则为CPU刷新到BPU上，否则为BPU刷新到CPU上
 void flushBPU(bool upload, hbDNNTensor *dst);

@@ -108,4 +108,49 @@ void UnorderedCheck(const std::vector<wdr::Box2D> &pred,
   }
 }
 
+void Check(const wdr::json &pred, const wdr::json &gt, double eps,
+           const std::string &msg) {
+  // 数据类型校验
+  EXPECT_EQ(pred.type_name(), gt.type_name()) << msg;
+  if (pred.type_name() != gt.type_name()) return;
+  const auto data_type = pred.type();
+
+  if (data_type == wdr::json::value_t::null) {
+    return;
+  } else if (data_type == wdr::json::value_t::string) {
+    EXPECT_EQ(pred.get<std::string>(), gt.get<std::string>()) << msg;
+  } else if (data_type == wdr::json::value_t::boolean) {
+    EXPECT_EQ(pred.get<bool>(), gt.get<bool>()) << msg;
+  } else if (data_type == wdr::json::value_t::number_float) {
+    EXPECT_NEAR(pred.get<double>(), gt.get<double>(), eps) << msg;
+  } else if (data_type == wdr::json::value_t::number_integer) {
+    EXPECT_EQ(pred.get<int>(), gt.get<int>()) << msg;
+  } else if (data_type == wdr::json::value_t::number_unsigned) {
+    EXPECT_EQ(pred.get<unsigned int>(), gt.get<unsigned int>()) << msg;
+  } else if (data_type == wdr::json::value_t::object) {
+    EXPECT_EQ(pred.size(), gt.size()) << msg;
+    if (pred.size() != gt.size()) return;
+
+    for (const auto &item : pred.items()) {
+      EXPECT_TRUE(gt.contains(item.key())) << msg;
+      if (!gt.contains(item.key())) continue;
+      std::stringstream ss;
+      ss << "key: " << item.key() << "(" << msg << ")";
+      Check(item.value(), gt[item.key()], eps, ss.str());
+    }
+  } else if (data_type == wdr::json::value_t::array) {
+    EXPECT_EQ(pred.size(), gt.size()) << msg;
+    if (pred.size() != gt.size()) return;
+    const int num = pred.size();
+
+    for (int i = 0; i < num; ++i) {
+      std::stringstream ss;
+      ss << "index " << i << "(" << msg << ")";
+      Check(pred[i], gt[i], eps, ss.str());
+    }
+  } else {
+    LOG(INFO) << "Not implemented for type " << pred.type_name() << ". " << msg;
+  }
+}
+
 }  // namespace wdr::testing

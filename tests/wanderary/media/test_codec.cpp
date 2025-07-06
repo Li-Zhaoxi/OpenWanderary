@@ -124,7 +124,7 @@ TEST(MediaCodecJpg, CodecDecode) {
   cv::cvtColor(res, dec_img, cv::COLOR_YUV2BGR_NV12);
   LOG(INFO) << "dec img size: " << dec_img.size();
 
-  wdr::testing::Check(dec_img, gtimg, 0);
+  wdr::testing::CheckGeneralMat(dec_img, gtimg, 0);
 }
 
 TEST(MediaCodecJpg, VideoCapture) {

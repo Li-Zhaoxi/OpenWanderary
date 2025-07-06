@@ -9,6 +9,7 @@ __pycache__
 *.bin
 !tests/test_data/media/zidane_encode.bin
 !tests/test_data/process/*.bin
+!tests/test_data/dnn/*.bin
 projects/torchdnn/data/unet
 projects/torchdnn/data/yolov5
 projects/torchdnn/data/dcmt

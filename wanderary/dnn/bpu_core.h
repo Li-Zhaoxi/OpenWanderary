@@ -7,6 +7,8 @@
 #include <wanderary/utils/enum_traits.h>
 #include <wanderary/utils/json_utils.h>
 
+#include <opencv2/opencv.hpp>
+
 namespace wdr::dnn {
 
 ENUM_NUMBERED_REGISTER(HBDNNQuantiType,                                    //
@@ -98,6 +100,10 @@ void createInputTensors(const hbDNNTensorProperties &property,
                         hbDNNTensor *bputensor);
 void createOutputTensors(const hbDNNTensorProperties &property,
                          hbDNNTensor *bputensor);
+
+// 内存拷贝
+void bpuMemcpy(const cv::Mat &src, hbDNNTensor *dst);
+void bpuMemcpy(hbDNNTensor *src, cv::Mat *dst);
 
 // 内存释放
 void releaseTensors(bool input, std::vector<hbDNNTensor> *tensors);

@@ -190,12 +190,93 @@ void createOutputTensors(const hbDNNTensorProperties &property,
   CHECK_EQ(hbSysAllocCachedMem(&bputensor->sysMem[0], output_memsize), 0);
 }
 
+void bpuMemcpy(const cv::Mat &src, hbDNNTensor *dst) {
+  CHECK(src.isContinuous());
+  const auto &prop = dst->properties;
+  const int size = prop.alignedByteSize;
+  const int src_size = src.total() * src.elemSize();
+  CHECK_LE(src_size, size);
+  const auto tensor_type = prop.tensorType;
+
+  switch (tensor_type) {
+    case HB_DNN_IMG_TYPE_NV12_SEPARATE:
+      memcpy(dst->sysMem[0].virAddr, src.data, src_size / 3 * 2);
+      memcpy(dst->sysMem[1].virAddr, src.data + src_size / 3 * 2, src_size / 3);
+      hbSysFlushMem(&dst->sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
+      hbSysFlushMem(&dst->sysMem[1], HB_SYS_MEM_CACHE_CLEAN);
+      break;
+    case HB_DNN_IMG_TYPE_Y:
+    case HB_DNN_IMG_TYPE_NV12:
+    case HB_DNN_IMG_TYPE_YUV444:
+    case HB_DNN_IMG_TYPE_RGB:
+    case HB_DNN_IMG_TYPE_BGR:
+    case HB_DNN_TENSOR_TYPE_U8:
+    case HB_DNN_TENSOR_TYPE_S8:
+    case HB_DNN_TENSOR_TYPE_S16:
+    case HB_DNN_TENSOR_TYPE_U16:
+    case HB_DNN_TENSOR_TYPE_F32:
+    case HB_DNN_TENSOR_TYPE_S32:
+    case HB_DNN_TENSOR_TYPE_U32:
+    case HB_DNN_TENSOR_TYPE_F64:
+    case HB_DNN_TENSOR_TYPE_S64:
+    case HB_DNN_TENSOR_TYPE_U64:
+      memcpy(dst->sysMem[0].virAddr, src.data, src_size);
+      hbSysFlushMem(&dst->sysMem[0], HB_SYS_MEM_CACHE_CLEAN);
+      break;
+    default:
+      LOG(FATAL) << "Unsupported tensor type: "
+                 << HBDNNDataType2str(int2HBDNNDataType(tensor_type));
+      break;
+  }
+}
+
+void bpuMemcpy(hbDNNTensor *src, cv::Mat *dst) {
+  hbSysFlushMem(&src->sysMem[0], HB_SYS_MEM_CACHE_INVALIDATE);
+  // 获取输出矩阵的维度信息
+  constexpr int kTensorDimNum = 4;
+  const auto &prop = src->properties;
+  CHECK_EQ(prop.validShape.numDimensions, kTensorDimNum);
+  int total_size = 1;
+  int dims[kTensorDimNum];
+  for (int i = 0; i < kTensorDimNum; i++) {
+    dims[i] = prop.validShape.dimensionSize[i];
+    total_size *= dims[i];
+  }
+
+  const auto data_type = prop.tensorType;
+  // 创建输出矩阵并拷贝数据
+  switch (data_type) {
+    case HB_DNN_TENSOR_TYPE_S8:
+      dst->create(kTensorDimNum, dims, CV_8S);
+      memcpy(dst->data, src->sysMem[0].virAddr, total_size * sizeof(int8_t));
+      break;
+    case HB_DNN_TENSOR_TYPE_S16:
+      dst->create(kTensorDimNum, dims, CV_16S);
+      memcpy(dst->data, src->sysMem[0].virAddr, total_size * sizeof(int16_t));
+      break;
+    case HB_DNN_TENSOR_TYPE_S32:
+      dst->create(kTensorDimNum, dims, CV_32S);
+      memcpy(dst->data, src->sysMem[0].virAddr, total_size * sizeof(int32_t));
+      break;
+    case HB_DNN_TENSOR_TYPE_F32:
+      dst->create(kTensorDimNum, dims, CV_32F);
+      memcpy(dst->data, src->sysMem[0].virAddr, total_size * sizeof(float));
+      break;
+    default:
+      LOG(FATAL) << "Unsupported tensor type: "
+                 << HBDNNDataType2str(int2HBDNNDataType(data_type));
+      break;
+  }
+}
+
 void releaseTensors(bool input, std::vector<hbDNNTensor> *tensors) {
   for (auto &tensor : *tensors) {
-    CHECK_EQ(hbSysFreeMem(&(tensor.sysMem[0])), 0);
-    if (input &&
-        tensor.properties.tensorType == HB_DNN_IMG_TYPE_NV12_SEPARATE) {
-      CHECK_EQ(hbSysFreeMem(&(tensor.sysMem[1])), 0);
+    if (tensor.sysMem != nullptr) {
+      CHECK_EQ(hbSysFreeMem(tensor.sysMem), 0);
+      if (input &&
+          tensor.properties.tensorType == HB_DNN_IMG_TYPE_NV12_SEPARATE) {
+        CHECK_EQ(hbSysFreeMem(&(tensor.sysMem[1])), 0);
+      }
     }
   }
 }

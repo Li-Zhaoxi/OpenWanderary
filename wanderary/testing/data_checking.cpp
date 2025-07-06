@@ -31,8 +31,10 @@ std::vector<Eigen::Vector<double, 5>> ConstructBox2DFeatures(
 
 }  // namespace
 
-void Check(const cv::Mat &pred, const cv::Mat &gt, double eps,
-           const std::string &msg) {
+void CheckGeneralMat(const cv::Mat &pred, const cv::Mat &gt, double eps,
+                     const std::string &msg) {
+  EXPECT_EQ(pred.rows, gt.rows) << msg;
+  EXPECT_EQ(pred.cols, gt.cols) << msg;
   EXPECT_EQ(pred.size(), gt.size()) << msg;
   EXPECT_EQ(pred.type(), gt.type()) << msg;
   EXPECT_EQ(pred.channels(), gt.channels()) << msg;
@@ -53,6 +55,25 @@ void Check(const cv::Mat &pred, const cv::Mat &gt, double eps,
       EXPECT_EQ(cv::countNonZero(channels[i]), 0)
           << "(chl idx: " << i << ")->" << msg;
   }
+}
+
+void CheckNonGeneralMat(const cv::Mat &pred, const cv::Mat &gt, double eps,
+                        const std::string &msg) {
+  CHECK_EQ(gt.rows, -1) << msg;
+  CHECK_EQ(gt.cols, -1) << msg;
+  // 维度校验
+  EXPECT_EQ(pred.size.dims(), gt.size.dims()) << msg;
+  if (pred.size.dims() != gt.size.dims()) return;
+  for (int i = 0; i < pred.size.dims(); i++) {
+    EXPECT_EQ(pred.size[i], gt.size[i]) << "index: " << i << " " << msg;
+    if (pred.size[i] != gt.size[i]) return;
+  }
+
+  // 数值校验
+  const int total = gt.total();
+  CheckGeneralMat(cv::Mat(1, total, pred.type(), pred.data),
+                  cv::Mat(1, total, gt.type(), gt.data), eps,
+                  "CheckNonGeneralMat " + msg);
 }
 
 void Check(const std::set<std::string> &pred, const std::set<std::string> &gt,

@@ -5,4 +5,5 @@ PYBIND11_MODULE(wanderary, m) {
   BindUtils(&m);
   BindMedia(&m);
   BindProcess(&m);
+  BindDNN(&m);
 }

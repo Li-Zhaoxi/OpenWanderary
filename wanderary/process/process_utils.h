@@ -24,11 +24,6 @@ struct ImageAffineParms {
   wdr::json dump() const;
 };
 
-struct DequantScales {
-  std::map<int, std::vector<float>> de_scales;
-  std::map<int, float> box_scales;
-};
-
 // 缩放图像
 ImageAffineParms ResizeImage(const cv::Mat &img, const cv::Size &input_wh,
                              cv::Mat *out);

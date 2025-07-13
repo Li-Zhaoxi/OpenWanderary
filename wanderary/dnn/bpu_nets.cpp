@@ -42,10 +42,29 @@ BPUNets::~BPUNets() {
   LOG(INFO) << "Released packed handle";
 }
 
-ModelData *BPUNets::GetModelData(const std::string &model_name) {
+ModelData *BPUNets::GetModelData(const std::string &model_name) const {
   auto iter = this->net_map_.find(model_name);
   CHECK(iter != this->net_map_.end()) << "Model not found: " << model_name;
   return iter->second.get();
+}
+
+DequantScales BPUNets::GetDequantScales(const std::string &model_name) const {
+  const auto &model_data = GetModelData(model_name);
+  return GetDequantScales(*model_data);
+}
+
+DequantScales BPUNets::GetDequantScales(const ModelData &model_data) {
+  const auto &out_tensors = model_data.output_tensors_;
+  DequantScales scales;
+  const int tensor_num = out_tensors.size();
+  for (int i = 0; i < tensor_num; i++) {
+    const auto &scale = out_tensors[i].properties.scale;
+    if (scale.scaleLen <= 0) continue;
+    std::vector<float> scale_array(scale.scaleData,
+                                   scale.scaleData + scale.scaleLen);
+    scales.de_scales.insert(std::make_pair(i, std::move(scale_array)));
+  }
+  return scales;
 }
 
 void BPUNets::Forward(const std::string &model_name,

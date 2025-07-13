@@ -15,12 +15,18 @@ namespace py = pybind11;
 template <typename DType>
 cv::Mat PyArray2CvMat(const py::array_t<DType> &pydata);
 
+cv::Mat PyObject2CvMat(const py::object &obj);
+
 template <typename DType>
 py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata);
+
+py::object CvMat2PyObject(const cv::Mat &cvdata);
 
 void BindMedia(py::module *m);
 void BindUtils(py::module *m);
 void BindProcess(py::module *m);
 void BindDNN(py::module *m);
+void BindStructs(py::module *m);
+void BindTesting(py::module *m);
 
 #include <wanderary/python/impl/wdr.hpp>

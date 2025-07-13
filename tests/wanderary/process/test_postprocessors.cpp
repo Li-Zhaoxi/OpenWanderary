@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include "wanderary/dnn/bpu_nets.h"
 #include "wanderary/process/process_base.h"
 #include "wanderary/process/processors/convert_yolo_feature.h"
 #include "wanderary/testing/data_checking.h"
@@ -16,7 +17,7 @@ using ProcessRecorder = wdr::proc::ProcessRecorder;
 using TimeManager = wdr::TimerManager;
 using ConvertYoloFeature = wdr::proc::ConvertYoloFeature;
 using ImageAffineParms = wdr::proc::ImageAffineParms;
-using DequantScales = wdr::proc::DequantScales;
+using DequantScales = wdr::dnn::DequantScales;
 
 TEST(ProcessBase, TestConvertYoloFeature) {
   TimeManager time_manager;
@@ -25,7 +26,12 @@ TEST(ProcessBase, TestConvertYoloFeature) {
     "class_num": 80,
     "reg_num": 16,
     "nms_thres": 0.7,
-    "score_thres": 0.25
+    "score_thres": 0.25,
+    "box_scales": {
+      "1": 8,
+      "3": 16,
+      "5": 32
+    }
   })";
   ConvertYoloFeature proc(wdr::json::parse(cfg));
 
@@ -35,7 +41,6 @@ TEST(ProcessBase, TestConvertYoloFeature) {
   ProcessRecorder recorder;
   recorder.affine = ImageAffineParms(0.5, 0.5, 0, 140);
   DequantScales de_scales;
-  de_scales.box_scales = {{1, 8}, {3, 16}, {5, 32}};
   de_scales.de_scales = {
       {1, wdr::ReadBytesFromFile<float>(dataroot + "s_bboxes_scale.bin")},
       {3, wdr::ReadBytesFromFile<float>(dataroot + "m_bboxes_scale.bin")},
@@ -68,7 +73,7 @@ TEST(ProcessBase, TestConvertYoloFeature) {
   for (int i = 0; i < 10; i++) {
     time_manager.reset();
     time_manager.start("ConvertYoloFeature");
-    proc.Forward(feats, &box2ds, &recorder);
+    proc.Forward2D(feats, &box2ds, &recorder);
     time_manager.stop("ConvertYoloFeature");
     time_manager.printStatistics();
   }

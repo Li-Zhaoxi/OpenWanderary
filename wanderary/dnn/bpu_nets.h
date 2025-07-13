@@ -12,6 +12,10 @@
 
 namespace wdr::dnn {
 
+struct DequantScales {
+  std::map<int, std::vector<float>> de_scales;
+};
+
 struct ModelData {
   explicit ModelData(const hbDNNHandle_t &handle);
   ~ModelData();
@@ -23,14 +27,19 @@ struct ModelData {
 class BPUNets {
  public:
   explicit BPUNets(const std::vector<std::string> &modelpaths);
+  explicit BPUNets(const std::string &modelpath)
+      : BPUNets(std::vector<std::string>({modelpath})) {}
   ~BPUNets();
 
   void Forward(const std::string &model_name,
                const std::vector<cv::Mat> &input_mats,
                std::vector<cv::Mat> *out_feats);
 
+  static DequantScales GetDequantScales(const ModelData &model_data);
+  DequantScales GetDequantScales(const std::string &model_name) const;
+
  private:
-  ModelData *GetModelData(const std::string &model_name);
+  ModelData *GetModelData(const std::string &model_name) const;
   hbPackedDNNHandle_t packed_handle_{nullptr};
   std::map<std::string, std::unique_ptr<ModelData>> net_map_;
 };

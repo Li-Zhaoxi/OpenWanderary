@@ -1,5 +1,7 @@
 #include "wanderary/process/processors/convert_yolo_feature.h"
 
+#include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -29,15 +31,20 @@ ConvertYoloFeature::ConvertYoloFeature(const json &cfg)
   cfg_.nms_thres_ = wdr::GetData<float>(cfg, "nms_thres");
   cfg_.score_thres_ = wdr::GetData<float>(cfg, "score_thres");
 
+  const auto scale_data =
+      wdr::GetData<std::map<std::string, float>>(cfg, "box_scales");
+  for (auto &it : scale_data) cfg_.box_scales_[std::stoi(it.first)] = it.second;
+  CHECK_EQ(cfg_.box_scales_.size(), 3);
+
   cfg_.conf_thres_ = -std::log(1.0 / cfg_.score_thres_ - 1.0);
   box_weights_ = BoxWeights(cfg_.reg_num_);
 }
 
 ConvertYoloFeature::~ConvertYoloFeature() {}
 
-void ConvertYoloFeature::Forward(const std::vector<cv::Mat> &feats,
-                                 std::vector<wdr::Box2D> *box2ds,
-                                 ProcessRecorder *recorder) const {
+void ConvertYoloFeature::Forward2D(const std::vector<cv::Mat> &feats,
+                                   std::vector<wdr::Box2D> *box2ds,
+                                   ProcessRecorder *recorder) const {
   box2ds->clear();
   // 有效性校验. 转换Box时需要用到recorder的内容
   const int feat_num = 6;
@@ -45,6 +52,7 @@ void ConvertYoloFeature::Forward(const std::vector<cv::Mat> &feats,
   DCHECK(recorder != nullptr && recorder->affine.has_value() &&
          recorder->dequant_scales.has_value());
   const auto &descales = recorder->dequant_scales.value();
+  const auto &boxscales = cfg_.box_scales_;
   for (int i = 0; i < feat_num; i += 2) {
     const auto &feat = feats[i];
     DCHECK(CheckFeatureDimValid(feat, {1, -1, -1, cfg_.class_num_},
@@ -60,7 +68,7 @@ void ConvertYoloFeature::Forward(const std::vector<cv::Mat> &feats,
         << ", feat info: " << LogFeatureDim(feat);
     DCHECK(wdr::contains(descales.de_scales, i))
         << "Cannot find dequant scale for feature idx: " << i;
-    DCHECK(wdr::contains(descales.box_scales, i))
+    DCHECK(wdr::contains(cfg_.box_scales_, i))
         << "Cannot find box scale for feature idx: " << i;
   }
 
@@ -68,7 +76,7 @@ void ConvertYoloFeature::Forward(const std::vector<cv::Mat> &feats,
   std::mutex mtx;
   std::vector<std::vector<float>> scores(cfg_.class_num_);
   std::vector<std::vector<cv::Rect2d>> boxes(cfg_.class_num_);
-  auto fun_proc_feat = [&mtx, &feats, &descales, this, &scores,
+  auto fun_proc_feat = [&mtx, &feats, &descales, &boxscales, this, &scores,
                         &boxes](int idx) {
     const int idx_fscore = idx * 2;
     const int idx_fbox = idx * 2 + 1;
@@ -80,7 +88,7 @@ void ConvertYoloFeature::Forward(const std::vector<cv::Mat> &feats,
     const float *pfscore = fscore.ptr<float>(0);
     const int *pfbox = feats[idx_fbox].ptr<int>(0);
     const float *pdescales = descales.de_scales.at(idx_fbox).data();
-    const float boxscale = descales.box_scales.at(idx_fbox);
+    const float boxscale = boxscales.at(idx_fbox);
 
     auto fun_proc_one = [&mtx, fcols, pfscore, pfbox, pdescales, boxscale, this,
                          &scores, &boxes](int idx) {
@@ -171,6 +179,12 @@ float ConvertYoloFeature::ConvertOne(int idxh, int idxw, const float *fscore,
   box2d->height = (ltrb_indices[3] + ltrb_indices[1]) * boxscale;
 
   return max_score;
+}
+
+void ConvertYoloFeature::Forward(std::vector<cv::Mat> *feats,
+                                 std::vector<wdr::Box2D> *box2ds,
+                                 ProcessRecorder *recorder) const {
+  this->Forward2D(*feats, box2ds, recorder);
 }
 
 REGISTER_DERIVED_CLASS(ProcessBase, ConvertYoloFeature)

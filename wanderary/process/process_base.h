@@ -1,10 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 #include <glog/logging.h>
+#include <wanderary/dnn/bpu_nets.h>
 #include <wanderary/process/process_utils.h>
 #include <wanderary/structs/box.h>
 #include <wanderary/utils/class_registry.h>
@@ -15,7 +17,7 @@ namespace wdr::proc {
 
 struct ProcessRecorder {
   std::optional<ImageAffineParms> affine{std::nullopt};
-  std::optional<DequantScales> dequant_scales{std::nullopt};
+  std::optional<wdr::dnn::DequantScales> dequant_scales{std::nullopt};
 };
 
 class ProcessBase {
@@ -30,7 +32,7 @@ class ProcessBase {
                        ProcessRecorder *recorder = nullptr) const;
 
   // 用于输出特征后处理
-  virtual void Forward(const std::vector<cv::Mat> &feats,
+  virtual void Forward(std::vector<cv::Mat> *feats,
                        std::vector<wdr::Box2D> *box2ds,
                        ProcessRecorder *recorder = nullptr) const;
 
@@ -40,10 +42,16 @@ class ProcessBase {
   const std::string name_;
 };
 
+std::unique_ptr<ProcessBase> CreateProcessor(const json &cfg);
+
 class ProcessManager {
  public:
   explicit ProcessManager(const json &cfg);
   void Forward(cv::Mat *data, ProcessRecorder *recorder = nullptr) const;
+
+  // 用于输出特征后处理
+  void Forward(std::vector<cv::Mat> *feats, std::vector<wdr::Box2D> *box2ds,
+               ProcessRecorder *recorder = nullptr) const;
 
   static std::set<std::string> RegisteredNames();
 

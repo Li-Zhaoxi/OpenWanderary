@@ -4,12 +4,14 @@
 #include "wanderary/dnn/bpu_nets.h"
 #include "wanderary/python/wdr.h"
 
+using DequantScales = wdr::dnn::DequantScales;
 using BPUNets = wdr::dnn::BPUNets;
 
 void BindNets(py::module *m) {
   py::class_<BPUNets> bpu_class(*m, "BPUNets");
   bpu_class.def(py::init<const std::vector<std::string> &>(),
                 py::arg("model_paths"));
+  bpu_class.def(py::init<const std::string &>(), py::arg("model_path"));
   bpu_class.def(
       "forward",
       [](BPUNets *self, const std::string &model_name, const py::list &pylist) {
@@ -32,6 +34,8 @@ void BindNets(py::module *m) {
         for (const auto &out_feat : out_feats) {
           if (out_feat.depth() == CV_32F)
             pylist_out.append(CvMat2PyArray<float>(out_feat));
+          else if (out_feat.depth() == CV_32S)
+            pylist_out.append(CvMat2PyArray<int32_t>(out_feat));
           else if (out_feat.depth() == CV_8U)
             pylist_out.append(CvMat2PyArray<uint8_t>(out_feat));
           else
@@ -40,6 +44,19 @@ void BindNets(py::module *m) {
         return pylist_out;
       },
       py::arg("model_name"), py::arg("input_mats"));
+  bpu_class.def("GetDequantScales",
+                py::overload_cast<const std::string &>(
+                    &BPUNets::GetDequantScales, py::const_),
+                py::arg("model_name"));
 }
 
-void BindDNN(py::module *m) { BindNets(m); }
+void BindDequantScales(py::module *m) {
+  py::class_<DequantScales> parm_class(*m, "DequantScales");
+  parm_class.def(py::init<>());
+  parm_class.def_readwrite("de_scales", &DequantScales::de_scales);
+}
+
+void BindDNN(py::module *m) {
+  BindDequantScales(m);
+  BindNets(m);
+}

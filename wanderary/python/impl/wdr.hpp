@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 #include <glog/logging.h>
 #include <wanderary/python/wdr.h>
@@ -6,17 +7,19 @@
 template <typename DType>
 cv::Mat PyArray2CvMat(const py::array_t<DType> &pydata) {
   py::buffer_info buf = pydata.request();
-  if (buf.ndim != 1 && buf.ndim != 2 && buf.ndim != 3) {
-    std::stringstream ss;
-    ss << "The input array must be 2D/3D, but it is " << buf.ndim << "D.";
-    py::set_error(PyExc_ValueError, ss.str().c_str());
-    LOG(FATAL) << ss.str();
-  }
-  const int rows = buf.ndim == 1 ? 1 : buf.shape[0];
-  const int cols = buf.ndim == 1 ? buf.shape[0] : buf.shape[1];
-  const int chls = buf.ndim == 3 ? buf.shape[2] : 1;
 
-  cv::Mat mat(rows, cols, CV_MAKETYPE(cv::DataType<DType>::type, chls));
+  cv::Mat mat;
+  if (buf.ndim >= 4) {
+    std::vector<int> shape;
+    for (int i = 0; i < buf.ndim; ++i) shape.push_back(buf.shape[i]);
+    mat = cv::Mat(shape, CV_MAKETYPE(cv::DataType<DType>::type, 1));
+  } else {
+    const int rows = buf.ndim == 1 ? 1 : buf.shape[0];
+    const int cols = buf.ndim == 1 ? buf.shape[0] : buf.shape[1];
+    const int chls = buf.ndim == 3 ? buf.shape[2] : 1;
+    mat.create(rows, cols, CV_MAKETYPE(cv::DataType<DType>::type, chls));
+  }
+
   const int bytesize = mat.total() * mat.elemSize();
 
   if (bytesize != buf.itemsize * buf.size) {
@@ -48,22 +51,22 @@ py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata) {
   const int cols = cvdata.cols;
   const int chls = cvdata.channels();
 
+  py::array_t<DType> pydata;
+
   if (rows <= 0 || cols <= 0 || chls <= 0) {
-    std::stringstream ss;
-    ss << "The input Mat size is not correct. Got " << rows << "x" << cols
-       << "x" << chls << ".";
-    py::set_error(PyExc_ValueError, ss.str().c_str());
-    LOG(FATAL) << ss.str();
+    const int mat_dim = cvdata.size.dims();
+    std::vector<int> shape(cvdata.size.p, cvdata.size.p + mat_dim);
+    pydata = py::array_t<DType, py::array::c_style>(shape);
+  } else {
+    if (chls == 1)
+      pydata = py::array_t<DType, py::array::c_style>({rows, cols});
+    else
+      pydata = py::array_t<DType, py::array::c_style>({rows, cols, chls});
   }
 
-  py::array_t<DType> pydata;
-  if (chls == 1)
-    pydata = py::array_t<DType, py::array::c_style>({rows, cols});
-  else
-    pydata = py::array_t<DType, py::array::c_style>({rows, cols, chls});
   py::buffer_info buf = pydata.request();
   const int bytesize = cvdata.total() * cvdata.elemSize();
-  if (buf.size != bytesize) {
+  if (buf.size * buf.itemsize != bytesize) {
     std::stringstream ss;
     ss << "The input Mat size is not correct. Got " << buf.size
        << " bytes, but expected " << bytesize << " bytes.";

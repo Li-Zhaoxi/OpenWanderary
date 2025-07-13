@@ -13,6 +13,7 @@ struct CvtYoloConfig {
   int reg_num_ = 16;
   float nms_thres_ = 0.7;
   float score_thres_ = 0.25;
+  std::map<int, float> box_scales_;
 
   // 以下变量不需要指定
   double conf_thres_ = 0;
@@ -23,9 +24,11 @@ class ConvertYoloFeature : public ProcessBase {
   explicit ConvertYoloFeature(const json &cfg);
   ~ConvertYoloFeature() override;
 
-  void Forward(const std::vector<cv::Mat> &feats,
-               std::vector<wdr::Box2D> *box2ds,
-               ProcessRecorder *recorder = nullptr) const override;
+  void Forward2D(const std::vector<cv::Mat> &feats,
+                 std::vector<wdr::Box2D> *box2ds,
+                 ProcessRecorder *recorder = nullptr) const;
+  void Forward(std::vector<cv::Mat> *feats, std::vector<wdr::Box2D> *box2ds,
+               ProcessRecorder *recorder) const override;
 
  private:
   float ConvertOne(int idxh, int idxw, const float *fscore, const int *fbox,

@@ -6,12 +6,13 @@
 #include <wanderary/data_loader/base_dataset.h>
 #include <wanderary/utils/json_utils.h>
 
-namespace wdr {
+namespace wdr::loader {
 
 class SimpleImageDataset : public BaseDataset {
  public:
   struct Config {
-    std::string list_path;  // txt格式，每行表示一个图像
+    std::string image_root;
+    std::string name_list_path;  // txt格式，每行表示一个图像
   };
   explicit SimpleImageDataset(const json &cfg);
 
@@ -23,4 +24,4 @@ class SimpleImageDataset : public BaseDataset {
   std::vector<std::string> image_paths_;
 };
 
-}  // namespace wdr
+}  // namespace wdr::loader

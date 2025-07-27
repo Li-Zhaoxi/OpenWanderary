@@ -5,6 +5,7 @@ PYBIND11_MODULE(wanderary, m) {
   BindUtils(&m);
   BindMedia(&m);
   BindProcess(&m);
+  BindDataLoader(&m);
   BindDNN(&m);
   BindStructs(&m);
   BindTesting(&m);

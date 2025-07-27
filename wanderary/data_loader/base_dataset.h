@@ -4,7 +4,7 @@
 
 #include <wanderary/structs/frame.h>
 
-namespace wdr {
+namespace wdr::loader {
 
 class BaseDataset {
  public:
@@ -16,8 +16,10 @@ class BaseDataset {
   virtual int size() const = 0;
   virtual Frame at(int idx) const = 0;
 
+  static void make_active();
+
  private:
   const std::string name_;
 };
 
-}  // namespace wdr
+}  // namespace wdr::loader

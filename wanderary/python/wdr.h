@@ -24,6 +24,7 @@ py::object CvMat2PyObject(const cv::Mat &cvdata);
 
 void BindMedia(py::module *m);
 void BindUtils(py::module *m);
+void BindDataLoader(py::module *m);
 void BindProcess(py::module *m);
 void BindDNN(py::module *m);
 void BindStructs(py::module *m);

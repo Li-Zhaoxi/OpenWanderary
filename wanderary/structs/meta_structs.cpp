@@ -8,7 +8,7 @@
 
 namespace wdr {
 
-ImageFile create(const std::string& rawpath, bool load_data) {
+ImageFile ImageFile::create(const std::string& rawpath, bool load_data) {
   ImageFile res;
   res.rawpath = rawpath;
   if (load_data) {

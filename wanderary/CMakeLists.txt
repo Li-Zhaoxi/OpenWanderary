@@ -7,6 +7,7 @@ include_directories(
 
 add_subdirectory(utils)
 add_subdirectory(structs)
+add_subdirectory(data_loader)
 add_subdirectory(process)
 add_subdirectory(media)
 add_subdirectory(dnn)

@@ -4,3 +4,4 @@ tests/test_data/utils/* filter=lfs diff=lfs merge=lfs
 tests/test_data/models/*.json filter=lfs diff=lfs merge=lfs
 tests/test_data/dnn/*.json filter=lfs diff=lfs merge=lfs
 tests/test_data/dnn/*.bin filter=lfs diff=lfs merge=lfs
+tests/test_data/tiny_coco/val/* filter=lfs diff=lfs merge=lfs

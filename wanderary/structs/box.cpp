@@ -32,4 +32,6 @@ Box2D Box2D::load(const wdr::json& data) {
   return res;
 }
 
+cv::Rect Box2D::toCvRect() const { return cv::Rect(x_min, y_min, w, h); }
+
 }  // namespace wdr

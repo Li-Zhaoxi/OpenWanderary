@@ -2,12 +2,16 @@
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace wdr {
 
 class TimerManager {
  public:
+  TimerManager() = default;
   void start(const std::string& phase);
 
   void stop(const std::string& phase);
@@ -18,12 +22,24 @@ class TimerManager {
 
   int getDuration(const std::string& phase) const;
 
+  std::set<std::string> getPhases() const;
+
   void reset();
 
  private:
   mutable std::mutex mutex_;
   std::map<std::string, std::chrono::steady_clock::duration> durations;
   std::map<std::string, std::chrono::steady_clock::time_point> startTimes;
+};
+
+class StatisticsTimeManager {
+ public:
+  StatisticsTimeManager() = default;
+  void add(const TimerManager& mgr);
+  void printStatistics() const;
+
+ private:
+  std::map<std::string, std::pair<int, int>> statistics_;
 };
 
 class AutoScopeTimer {

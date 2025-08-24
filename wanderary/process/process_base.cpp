@@ -50,7 +50,6 @@ void ProcessManager::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
       AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
       process->Forward(data, recorder);
     }
-    wdr::GlobalTimerManager().printStatistics(proc_phase);
   }
 }
 
@@ -63,7 +62,6 @@ void ProcessManager::Forward(std::vector<cv::Mat> *feats,
       AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
       process->Forward(feats, box2ds, recorder);
     }
-    wdr::GlobalTimerManager().printStatistics(proc_phase);
   }
 }
 

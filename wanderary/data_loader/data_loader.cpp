@@ -27,6 +27,11 @@ DataLoader::DataLoader(const std::string &dataset_name, const json &cfg) {
   LOG(INFO) << "Created process: " << this->dataset_->name();
 }
 
+void DataLoader::load(const wdr::json &data) {
+  DCHECK(this->dataset_ != nullptr);
+  this->dataset_->load(data);
+}
+
 int DataLoader::size() const {
   DCHECK(this->dataset_ != nullptr);
   return this->dataset_->size();

@@ -2,6 +2,8 @@
 
 #include <wanderary/utils/json_utils.h>
 
+#include <opencv2/opencv.hpp>
+
 namespace wdr {
 
 struct Box2D {
@@ -15,6 +17,8 @@ struct Box2D {
   wdr::ordered_json dump() const;
 
   static Box2D load(const wdr::json& data);
+
+  cv::Rect toCvRect() const;
 };
 
 }  // namespace wdr

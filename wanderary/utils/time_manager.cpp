@@ -1,6 +1,10 @@
 #include "wanderary/utils/time_manager.h"
 
+#include <map>
+#include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <glog/logging.h>
 
@@ -48,6 +52,37 @@ void TimerManager::reset() {
   std::lock_guard<std::mutex> lock(mutex_);
   durations.clear();
   startTimes.clear();
+}
+
+std::set<std::string> TimerManager::getPhases() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  std::set<std::string> phases;
+  for (const auto& [phase, _] : durations) phases.insert(phase);
+  return phases;
+}
+
+void StatisticsTimeManager::add(const TimerManager& mgr) {
+  const auto phases = mgr.getPhases();
+  for (const auto& phase : phases) {
+    const auto duration = mgr.getDuration(phase);
+    if (wdr::contains(statistics_, phase)) {
+      statistics_[phase].first += duration;
+      statistics_[phase].second++;
+    } else {
+      statistics_[phase] = {duration, 1};
+    }
+  }
+}
+
+void StatisticsTimeManager::printStatistics() const {
+  std::stringstream ss;
+  ss << "Average statistics:\n";
+  for (const auto& [phase, durations] : statistics_) {
+    ss << "[" << phase
+       << "]: " << static_cast<double>(durations.first) / durations.second
+       << "ms, count: " << durations.second << "\n";
+  }
+  LOG(INFO) << ss.str();
 }
 
 TimerManager& GlobalTimerManager() {

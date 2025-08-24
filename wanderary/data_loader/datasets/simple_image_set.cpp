@@ -12,9 +12,11 @@
 namespace wdr::loader {
 
 SimpleImageDataset::SimpleImageDataset(const json &cfg)
-    : BaseDataset("SimpleImageDataset") {
-  cfg_.image_root = wdr::GetData<std::string>(cfg, "image_root");
-  cfg_.name_list_path = wdr::GetData<std::string>(cfg, "name_list_path");
+    : BaseDataset("SimpleImageDataset") {}
+
+void SimpleImageDataset::load(const wdr::json &data) {
+  cfg_.image_root = wdr::GetData<std::string>(data, "image_root");
+  cfg_.name_list_path = wdr::GetData<std::string>(data, "name_list_path");
 
   const auto name_list = wdr::ReadLinesFromFile(cfg_.name_list_path);
   for (const auto &name : name_list) {
@@ -23,6 +25,8 @@ SimpleImageDataset::SimpleImageDataset(const json &cfg)
         << "Image file not found: " << image_path;
     image_paths_.push_back(std::move(image_path));
   }
+  LOG(INFO) << "Loaded " << image_paths_.size() << " images, from "
+            << cfg_.image_root;
 }
 
 Frame SimpleImageDataset::at(int idx) const {

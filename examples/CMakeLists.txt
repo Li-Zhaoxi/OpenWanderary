@@ -7,3 +7,4 @@ include_directories(
 
 add_subdirectory(BPU)
 add_subdirectory(Blog)
+add_subdirectory(dnn)

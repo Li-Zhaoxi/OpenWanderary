@@ -16,6 +16,7 @@ class SimpleImageDataset : public BaseDataset {
   };
   explicit SimpleImageDataset(const json &cfg);
 
+  void load(const wdr::json &data) override;
   int size() const override { return image_paths_.size(); }
   Frame at(int idx) const override;
 

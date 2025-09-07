@@ -39,6 +39,7 @@ class StatisticsTimeManager {
   void printStatistics() const;
 
  private:
+  mutable std::mutex mtx_;
   std::map<std::string, std::pair<int, int>> statistics_;
 };
 
@@ -46,10 +47,12 @@ class AutoScopeTimer {
  public:
   AutoScopeTimer(const std::string& phase, TimerManager* mgr)
       : manager_(mgr), phase_(phase) {
-    manager_->start(phase_);
+    if (manager_) manager_->start(phase_);
   }
 
-  ~AutoScopeTimer() { manager_->stop(phase_); }
+  ~AutoScopeTimer() {
+    if (manager_) manager_->stop(phase_);
+  }
 
  private:
   TimerManager* manager_{nullptr};

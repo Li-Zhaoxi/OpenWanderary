@@ -33,8 +33,11 @@ std::unique_ptr<ProcessBase> CreateProcessor(const json &cfg) {
   return res;
 }
 
-ProcessManager::ProcessManager(const json &cfg) {
-  manger_name_ = wdr::GetData<std::string>(cfg, "manger_name");
+ProcessManager::ProcessManager(const json &cfg)
+    : ProcessManager(wdr::GetData<std::string>(cfg, "manger_name"), cfg) {}
+
+ProcessManager::ProcessManager(const std::string &manager_name, const json &cfg)
+    : manger_name_(manager_name) {
   const auto process_cfgs = wdr::GetData<std::vector<json>>(cfg, "processes");
   for (const auto &process_cfg : process_cfgs) {
     processes_.push_back(CreateProcessor(process_cfg));

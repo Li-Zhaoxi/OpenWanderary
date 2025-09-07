@@ -14,7 +14,7 @@ namespace wdr {
 
 void TimerManager::start(const std::string& phase) {
   std::lock_guard<std::mutex> lock(mutex_);
-  CHECK(!wdr::contains(startTimes, phase));
+  CHECK(!wdr::contains(startTimes, phase)) << "Find duplicate phase: " << phase;
   startTimes[phase] = std::chrono::steady_clock::now();
 }
 
@@ -62,6 +62,7 @@ std::set<std::string> TimerManager::getPhases() const {
 }
 
 void StatisticsTimeManager::add(const TimerManager& mgr) {
+  std::lock_guard<std::mutex> lock(mtx_);
   const auto phases = mgr.getPhases();
   for (const auto& phase : phases) {
     const auto duration = mgr.getDuration(phase);
@@ -75,6 +76,7 @@ void StatisticsTimeManager::add(const TimerManager& mgr) {
 }
 
 void StatisticsTimeManager::printStatistics() const {
+  std::lock_guard<std::mutex> lock(mtx_);
   std::stringstream ss;
   ss << "Average statistics:\n";
   for (const auto& [phase, durations] : statistics_) {

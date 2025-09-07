@@ -174,4 +174,20 @@ void Check(const wdr::json &pred, const wdr::json &gt, double eps,
   }
 }
 
+void Check(const std::vector<cv::Rect> &pred, const std::vector<cv::Rect> &gt,
+           const std::string &msg) {
+  EXPECT_EQ(pred.size(), gt.size()) << msg;
+  if (pred.size() != gt.size()) return;
+
+  for (int i = 0; i < pred.size(); ++i) {
+    const auto &roi_pred = pred[i];
+    const auto &roi_gt = gt[i];
+    const std::string submsg = "(i: " + std::to_string(i) + ")->" + msg;
+    EXPECT_EQ(roi_pred.x, roi_gt.x) << submsg;
+    EXPECT_EQ(roi_pred.y, roi_gt.y) << submsg;
+    EXPECT_EQ(roi_pred.width, roi_gt.width) << submsg;
+    EXPECT_EQ(roi_pred.height, roi_gt.height) << submsg;
+  }
+}
+
 }  // namespace wdr::testing

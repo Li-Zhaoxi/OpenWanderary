@@ -1,5 +1,9 @@
 #include "wanderary/utils/convertor.h"
 
+#include <algorithm>
+#include <utility>
+#include <vector>
+
 #include <glog/logging.h>
 
 namespace wdr {
@@ -55,6 +59,47 @@ void NV12ToYUV444(const cv::Mat &nv12, const cv::Size size, cv::Mat *yuv444) {
   cv::resize(v, v, size);
 
   cv::merge(std::vector<cv::Mat>{y, u, v}, *yuv444);
+}
+
+std::vector<cv::Rect> ImageCropROIs(const cv::Size &img_size,
+                                    const cv::Size &crop_size,
+                                    const cv::Size &offset, bool drop_gap) {
+  DCHECK(crop_size.width > 0 && crop_size.height > 0)
+      << "crop_size must be positive: " << crop_size;
+  std::vector<cv::Rect> rois;
+  if (crop_size.width <= 0 || crop_size.height <= 0) {
+    rois.push_back(cv::Rect(0, 0, img_size.width, img_size.height));
+    return rois;
+  }
+
+  for (int idx_r_st = 0; idx_r_st < img_size.height;
+       idx_r_st += offset.height) {
+    // roi结束位置, 行标
+    int idx_r_ed = idx_r_st + crop_size.height;
+    for (int idx_c_st = 0; idx_c_st < img_size.width;
+         idx_c_st += offset.width) {
+      // roi结束位置, 列标
+      int idx_c_ed = idx_c_st + crop_size.width;
+
+      cv::Rect roi;
+      roi.x = idx_c_st;
+      roi.y = idx_r_st;
+      if (idx_r_ed > img_size.height || idx_c_ed > img_size.width) {
+        if (drop_gap) {
+          continue;
+        } else {
+          roi.width = std::min(idx_c_ed, img_size.width) - idx_c_st;
+          roi.height = std::min(idx_r_ed, img_size.height) - idx_r_st;
+        }
+      } else {
+        roi.width = crop_size.width;
+        roi.height = crop_size.height;
+      }
+      rois.push_back(std::move(roi));
+    }
+  }
+
+  return rois;
 }
 
 }  // namespace wdr

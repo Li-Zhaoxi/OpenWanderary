@@ -1,0 +1,37 @@
+{
+  "preprocess": {
+      "manger_name": "preprocess",
+      "processes": [
+        {
+          "name": "FormatImage",
+          "config": {
+            "type": "letter_box",
+            "width": 640,
+            "height": 640,
+            "cvt_nv12": true
+          }
+        }
+      ]
+    },
+    "postprocess": {
+      "manger_name": "postprocess",
+      "processes": [
+        {
+          "name": "ConvertYoloFeature",
+          "config": {
+            "class_num": 80,
+            "reg_num": 16,
+            "nms_thres": 0.7,
+            "score_thres": 0.25,
+            "box_scales": {
+              "1": 8,
+              "3": 16,
+              "5": 32
+            }
+          }
+        }
+      ]
+    },
+    "model_path": "../../test_data/models/yolov8x_detect_bayese_640x640_nv12_modified.bin",
+    "model_name": "yolov8x_detect_bayese_640x640_nv12"
+}

@@ -15,11 +15,11 @@ link_directories(
 # ${OpenCV_LIBS}
 # openwdr_core openwdr_bpu openwdr_dnn cnpy)
 
-set(BIN infer-dcmt)
-add_executable(${BIN} infer-dcmt.cpp)
-target_link_libraries(${BIN}
-${OpenCV_LIBS}
-openwdr_core openwdr_bpu cnpy openwdr_algorithms)
+# set(BIN infer-dcmt)
+# add_executable(${BIN} infer-dcmt.cpp)
+# target_link_libraries(${BIN}
+# ${OpenCV_LIBS}
+# openwdr_core openwdr_bpu cnpy openwdr_algorithms)
 
 # set(BIN infer-yolov5)
 # add_executable(${BIN} infer-yolov5.cpp)

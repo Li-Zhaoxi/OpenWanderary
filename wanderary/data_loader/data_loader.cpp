@@ -19,6 +19,9 @@ DataLoader::DataLoader(const json &cfg) {
   this->dataset_ =
       ClassRegistry<BaseDataset>::createInstance(dataset_name, dataset_cfg);
   LOG(INFO) << "Created process: " << this->dataset_->name();
+  if (cfg.contains("input")) {
+    this->dataset_->load(cfg["input"]);
+  }
 }
 
 DataLoader::DataLoader(const std::string &dataset_name, const json &cfg) {

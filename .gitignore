@@ -4,6 +4,7 @@ lib/
 bin/
 examples/modules
 __pycache__
+.cache/
 
 !projects/torchdnn/demos/DCMT/lib
 *.bin

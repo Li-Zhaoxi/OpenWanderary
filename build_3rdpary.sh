@@ -25,3 +25,9 @@ cd ${cur_dir}/3rdparty/yaml-cpp
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DYAML_CPP_BUILD_TOOLS=OFF -DBUILD_SHARED_LIBS=ON
 make -j6 -C build/
 sudo make install -C build/
+
+# 安装indicators
+cd ${cur_dir}/3rdparty/indicators
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+make -j6 -C build/
+sudo make install -C build/

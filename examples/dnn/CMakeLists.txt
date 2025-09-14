@@ -12,4 +12,4 @@ link_directories(
 set(BIN stat-dnn-time-consumption)
 add_executable(${BIN} stat-dnn-time-consumption.cpp)
 target_link_libraries(${BIN} -lgflags
-${OpenCV_LIBS} wdr_dnn wdr_process wdr_data_loader wdr_visualization wdr_apps)
+${OpenCV_LIBS} wdr_dnn wdr_process wdr_data_loader wdr_visualization wdr_apps indicators::indicators)

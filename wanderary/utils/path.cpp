@@ -29,8 +29,18 @@ std::string join(const std::vector<std::string> &filepaths) {
   return basepath.string();
 }
 
+std::string join(const std::string &path1, const std::string &name) {
+  fs::path basepath = path1;
+  basepath /= name;
+  return basepath.string();
+}
+
 std::string dirname(const std::string &filepath) {
   return fs::path(filepath).parent_path().string();
+}
+
+std::string basename(const std::string &filepath) {
+  return fs::path(filepath).filename().string();
 }
 
 }  // namespace wdr::path

@@ -1,7 +1,19 @@
 data_loader:
-  image_root: tests/test_data/tiny_coco/val
-  name_list_path: tests/test_data/tiny_coco/val_names.txt
+  name:
+    SimpleImageDataset
+  config:
+  input:
+    image_root: tests/test_data/tiny_coco/val
+    name_list_path: tests/test_data/tiny_coco/val_names.txt
+saveroot: ".cache"
 
-model_paths:
-  - tests/test_data/models/yolov8n_detect_bayese_640x640_nv12_modified.bin
-model_name: yolov8n_detect_bayese_640x640_nv12
+model_path: tests/test_data/models/yolov8x_detect_bayese_640x640_nv12_modified.bin
+model_name: yolov8x_detect_bayese_640x640_nv12
+type_names: tests/test_data/tiny_coco/type_names.json
+
+crop_info:
+  size_w: -1
+  size_h: -1
+  offset_w: -1
+  offset_h: -1
+  drop_gap: false

@@ -32,6 +32,7 @@ find_package(pybind11 REQUIRED)
 find_package(pybind11_json REQUIRED)
 find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(indicators REQUIRED)
 message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
 

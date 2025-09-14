@@ -10,3 +10,6 @@
 [submodule "3rdparty/yaml-cpp"]
 	path = 3rdparty/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "3rdparty/indicators"]
+	path = 3rdparty/indicators
+	url = https://github.com/p-ranav/indicators

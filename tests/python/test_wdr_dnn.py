@@ -13,7 +13,7 @@ def test_dnn_yolov8():
     binpath = "../test_data/models/yolov8n_detect_bayese_640x640_nv12_modified.bin" # noqa
     model_name = "yolov8n_detect_bayese_640x640_nv12"
     precfg = {
-      "manger_name": "pre-process",
+      "manager_name": "pre-process",
       "processes": [
         {
           "name": "FormatImage",
@@ -27,7 +27,7 @@ def test_dnn_yolov8():
       ]
     }
     postcfg = {
-      "manger_name": "yolo-post-process",
+      "manager_name": "yolo-post-process",
       "processes": [
         {
           "name": "ConvertYoloFeature",

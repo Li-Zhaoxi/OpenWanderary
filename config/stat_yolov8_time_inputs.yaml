@@ -5,10 +5,7 @@ data_loader:
   input:
     image_root: tests/test_data/tiny_coco/val
     name_list_path: tests/test_data/tiny_coco/val_names.txt
-saveroot: ".cache"
 
-model_path: tests/test_data/models/yolov8x_detect_bayese_640x640_nv12_modified.bin
-model_name: yolov8x_detect_bayese_640x640_nv12
 type_names: tests/test_data/tiny_coco/type_names.json
 
 crop_info:

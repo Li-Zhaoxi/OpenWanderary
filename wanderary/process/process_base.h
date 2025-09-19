@@ -55,7 +55,7 @@ class ProcessManager {
 
   /**
    * \brief 定义一个ProcessManager
-   * \note 要求指定manger_name(str)和processes(List[Json])
+   * \note 要求指定manager_name(str)和processes(List[Json])
    */
   explicit ProcessManager(const json &cfg);
   void Forward(cv::Mat *data, ProcessRecorder *recorder = nullptr) const;
@@ -68,7 +68,7 @@ class ProcessManager {
 
  private:
   std::vector<std::unique_ptr<ProcessBase>> processes_;
-  std::string manger_name_;
+  std::string manager_name_;
 };
 
 }  // namespace wdr::proc

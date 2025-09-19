@@ -91,18 +91,6 @@ CropInfo::CropInfo(const wdr::json &cfg) {
   this->drop_gap = drop_gap;
 }
 
-YOLOv8 CreateYOLOv8(const wdr::json &cfg, const wdr::json &input_cfg,
-                    int thread_num) {
-  // 构造Class参数
-  auto total_config = cfg;
-  total_config["model_path"] =
-      wdr::GetData<std::string>(input_cfg, "model_path");
-  total_config["model_name"] =
-      wdr::GetData<std::string>(input_cfg, "model_name");
-  wdr::apps::YOLOv8 yolov8("yolov8", total_config, thread_num);
-  return yolov8;
-}
-
 std::unique_ptr<Box2DDrawer> CreateDrawer(const std::string &names_path) {
   const auto names = wdr::LoadJson(names_path);
   const int class_num = names.size();
@@ -121,7 +109,7 @@ void process_yolov8_dataset(const std::string &config_path,
 
   DataLoader data_loader(wdr::GetData<wdr::json>(total_inputs, "data_loader"));
   CropInfo crop_info(wdr::GetData<wdr::json>(total_inputs, "crop_info"));
-  YOLOv8 yolov8 = CreateYOLOv8(total_config, total_inputs, thread_num);
+  YOLOv8 yolov8("yolov8", total_config, thread_num);
 
   // 初始化可视化
   std::unique_ptr<Box2DDrawer> drawer =
@@ -186,7 +174,7 @@ void process_yolov8_image(const std::string &config_path,
   const auto total_config = wdr::LoadYaml<wdr::json>(config_path);
 
   CropInfo crop_info(wdr::GetData<wdr::json>(total_inputs, "crop_info"));
-  YOLOv8 yolov8 = CreateYOLOv8(total_config, total_inputs, thread_num);
+  YOLOv8 yolov8("yolov8", total_config, thread_num);
   const cv::Mat img = cv::imread(image_path, cv::IMREAD_COLOR);
 
   // 初始化可视化

@@ -19,6 +19,14 @@ struct FormatImageConfig {
   bool cvt_nv12_ = false;
 };
 
+/**
+ * \brief 格式化处理输入图像，按照指定的形式构造模型输入的图像
+ * \note 配置参数:
+ * \param type_ 图像格式化类型
+ * \param width_ 输出的图像宽度
+ * \param height_ 输出的图像高度
+ * \param cvt_nv12_ 是否将图像转换为NV12格式
+ */
 class FormatImage : public ProcessBase {
  public:
   explicit FormatImage(const json &cfg);

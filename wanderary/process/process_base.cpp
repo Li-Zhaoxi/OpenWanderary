@@ -34,21 +34,21 @@ std::unique_ptr<ProcessBase> CreateProcessor(const json &cfg) {
 }
 
 ProcessManager::ProcessManager(const json &cfg)
-    : ProcessManager(wdr::GetData<std::string>(cfg, "manger_name"), cfg) {}
+    : ProcessManager(wdr::GetData<std::string>(cfg, "manager_name"), cfg) {}
 
 ProcessManager::ProcessManager(const std::string &manager_name, const json &cfg)
-    : manger_name_(manager_name) {
+    : manager_name_(manager_name) {
   const auto process_cfgs = wdr::GetData<std::vector<json>>(cfg, "processes");
   for (const auto &process_cfg : process_cfgs) {
     processes_.push_back(CreateProcessor(process_cfg));
     LOG(INFO) << "Add process: " << processes_.back()->name()
-              << " to manager: " << manger_name_;
+              << " to manager: " << manager_name_;
   }
 }
 
 void ProcessManager::Forward(cv::Mat *data, ProcessRecorder *recorder) const {
   for (const auto &process : processes_) {
-    const std::string proc_phase = this->manger_name_ + "/" + process->name();
+    const std::string proc_phase = this->manager_name_ + "/" + process->name();
     {
       AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
       process->Forward(data, recorder);
@@ -60,7 +60,7 @@ void ProcessManager::Forward(std::vector<cv::Mat> *feats,
                              std::vector<wdr::Box2D> *box2ds,
                              ProcessRecorder *recorder) const {
   for (const auto &process : processes_) {
-    const std::string proc_phase = this->manger_name_ + "/" + process->name();
+    const std::string proc_phase = this->manager_name_ + "/" + process->name();
     {
       AutoScopeTimer scope_timer(proc_phase, &wdr::GlobalTimerManager());
       process->Forward(feats, box2ds, recorder);

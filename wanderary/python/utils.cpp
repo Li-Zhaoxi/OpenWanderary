@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "wanderary/python/wdr.h"
 #include "wanderary/utils/convertor.h"
@@ -7,6 +8,7 @@
 
 using TimerManager = wdr::TimerManager;
 using AutoScopeTimer = wdr::AutoScopeTimer;
+using StatisticsTimeManager = wdr::StatisticsTimeManager;
 
 void BindConvertor(py::module *m) {
   m->def(
@@ -27,6 +29,30 @@ void BindConvertor(py::module *m) {
         return CvMat2PyArray<uchar>(yuv444);
       },
       py::arg("nv12"), py::arg("width"), py::arg("height"));
+
+  m->def(
+      "ImageCropROIs",
+      [](const py::tuple &img_size, const py::tuple &crop_size,
+         const py::tuple &offset, bool drop_gap) {
+        CHECK_EQ(img_size.size(), 2);
+        CHECK_EQ(crop_size.size(), 2);
+        CHECK_EQ(offset.size(), 2);
+        const cv::Size img_size_cv(img_size[0].cast<int>(),
+                                   img_size[1].cast<int>());
+        const cv::Size crop_size_cv(crop_size[0].cast<int>(),
+                                    crop_size[1].cast<int>());
+        const cv::Point offset_cv(offset[0].cast<int>(), offset[1].cast<int>());
+        const auto rois =
+            wdr::ImageCropROIs(img_size_cv, crop_size_cv, offset_cv, drop_gap);
+        std::vector<py::tuple> py_rois;
+        for (const auto &roi : rois) {
+          py_rois.emplace_back(
+              py::make_tuple(roi.x, roi.y, roi.width, roi.height));
+        }
+        return py_rois;
+      },
+      py::arg("img_size"), py::arg("crop_size"), py::arg("offset"),
+      py::arg("drop_gap"));
 }
 
 void BindTimeManager(py::module *m) {
@@ -76,8 +102,16 @@ void BindAutoScopeTimer(py::module *m) {
   timer_class.def("__exit__", &PyAutoScopeTimer::leave);
 }
 
+void BindStatisticsTimeManager(py::module *m) {
+  py::class_<StatisticsTimeManager> timer_class(*m, "StatisticsTimeManager");
+  timer_class.def(py::init<>());
+  timer_class.def("add", &StatisticsTimeManager::add);
+  timer_class.def("printStatistics", &StatisticsTimeManager::printStatistics);
+}
+
 void BindUtils(py::module *m) {
   BindConvertor(m);
   BindTimeManager(m);
   BindAutoScopeTimer(m);
+  BindStatisticsTimeManager(m);
 }

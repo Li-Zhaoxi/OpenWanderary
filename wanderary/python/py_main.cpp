@@ -9,4 +9,6 @@ PYBIND11_MODULE(wanderary, m) {
   BindDNN(&m);
   BindStructs(&m);
   BindTesting(&m);
+  BindVisualization(&m);
+  BindApps(&m);
 }

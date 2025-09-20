@@ -22,6 +22,8 @@ py::array_t<DType> CvMat2PyArray(const cv::Mat &cvdata);
 
 py::object CvMat2PyObject(const cv::Mat &cvdata);
 
+cv::Rect PyTuple2Rect(const py::tuple &t);
+
 void BindMedia(py::module *m);
 void BindUtils(py::module *m);
 void BindDataLoader(py::module *m);
@@ -29,5 +31,7 @@ void BindProcess(py::module *m);
 void BindDNN(py::module *m);
 void BindStructs(py::module *m);
 void BindTesting(py::module *m);
+void BindVisualization(py::module *m);
+void BindApps(py::module *m);
 
 #include <wanderary/python/impl/wdr.hpp>

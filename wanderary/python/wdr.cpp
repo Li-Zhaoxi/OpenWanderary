@@ -26,3 +26,9 @@ py::object CvMat2PyObject(const cv::Mat &cvdata) {
     LOG(FATAL) << "Unsupported type: " << cvdata.depth();
   return res;
 }
+
+cv::Rect PyTuple2Rect(const py::tuple &t) {
+  CHECK_EQ(t.size(), 4);
+  return cv::Rect(t[0].cast<int>(), t[1].cast<int>(), t[2].cast<int>(),
+                  t[3].cast<int>());
+}

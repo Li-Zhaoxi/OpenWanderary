@@ -58,6 +58,6 @@ setuptools.setup(
     url="https://github.com/Li-Zhaoxi/OpenWanderary",
     package_dir={"": "package"},
     packages=setuptools.find_packages("package"),
-    python_requires='==3.10',
+    python_requires='>=3.10, <3.11',
     include_package_data=True,
 )

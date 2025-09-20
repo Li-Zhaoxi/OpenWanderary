@@ -1,0 +1,4 @@
+
+pakcage_name: @WDR_PYTHON_PACKAGE_NAME@
+version: @WDR_PROJECT_VERSION@
+pybind_module_path: @PYMODULE_PATH@

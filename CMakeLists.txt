@@ -55,9 +55,6 @@ link_directories(
   ${Boost_LIBRARY_DIRS}
 )
 
-link_directories(
-  /usr/hobot/lib/
-)
 
 message( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
 message( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
@@ -77,7 +74,9 @@ write_basic_package_version_file(
 )
 
 install(
-  TARGETS wdr_utils wdr_structs wdr_media wdr_dnn wdr_testing wdr_process wdr_data_loader
+  TARGETS wdr_utils wdr_structs wdr_media wdr_dnn
+          wdr_testing wdr_process wdr_data_loader
+          wdr_visualization wdr_apps
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
@@ -94,17 +93,18 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/wdr-config.cmake.in"
     "${PROJECT_BINARY_DIR}/wdr-config.cmake"
-    INSTALL_DESTINATION lib/cmake/wanderary
+    INSTALL_DESTINATION lib/cmake/wdr
 )
 
 install(EXPORT wdr-targets
   NAMESPACE wdr::
-  DESTINATION lib/cmake/wanderary)
+  DESTINATION lib/cmake/wdr)
 
 install(
   FILES "${PROJECT_BINARY_DIR}/wdr-config-version.cmake"
         "${PROJECT_BINARY_DIR}/wdr-config.cmake"
-  DESTINATION lib/cmake/wanderary
+        "${PROJECT_SOURCE_DIR}/cmake/pack_3rdparty.cmake"
+  DESTINATION lib/cmake/wdr
 )
 
 # 生成卸载脚本

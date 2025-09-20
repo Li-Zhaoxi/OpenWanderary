@@ -6,7 +6,6 @@ file (GLOB SOURCES "[^_]*.cpp")
 
 link_directories(
   /usr/lib/
-  /usr/hobot/lib/
 )
 
 set(BIN stat-dnn-time-consumption)

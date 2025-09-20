@@ -32,7 +32,7 @@ def group_package(package_name, pybind_paths):
     init_path = os.path.join(package_root, "__init__.py")
     with open(init_path, "w") as f:
         for pybind_path in pybind_paths:
-            package_name = os.path.basename(pybind_path)
+            package_name = os.path.basename(pybind_path).split(".")[0]
             f.write(f"from .{package_name} import *\n")
 
     # 构造MANIFEST.in文件

@@ -19,4 +19,11 @@ ImageFile ImageFile::create(const std::string& rawpath, bool load_data) {
   return res;
 }
 
+ImageFile ImageFile::clone() const {
+  ImageFile res;
+  res.rawpath = rawpath;
+  res.data = std::make_unique<cv::Mat>(*data);
+  return res;
+}
+
 }  // namespace wdr

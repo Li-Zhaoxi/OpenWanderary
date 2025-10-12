@@ -15,4 +15,4 @@ flake8-tidy-imports==4.11.0
 pep8-naming==0.15.0
 
 # Pytest
-pytest<=8.0.2
+pytest==8.0

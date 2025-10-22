@@ -13,3 +13,6 @@
 [submodule "3rdparty/indicators"]
 	path = 3rdparty/indicators
 	url = https://github.com/p-ranav/indicators
+[submodule "3rdparty/mcap"]
+	path = 3rdparty/mcap
+	url = https://github.com/foxglove/mcap.git

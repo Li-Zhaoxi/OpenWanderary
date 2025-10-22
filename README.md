@@ -1,32 +1,125 @@
 
-开源项目OpenWanderary[wɒndərəri]，拥抱多传感器，核心在于提高基于Linux的嵌入式系统的研发&部署效率。所有功能来源于项目，应用于项目。
+开源项目OpenWanderary[wɒndərəri]是一个面向多传感器集成的开源框架，旨在提升基于Linux的嵌入式系统研发与部署效率。项目遵循"从实践中来，到实践中去"的理念，所有功能均源于实际开发需求，并最终服务于嵌入式应用场景。
 
-自己做一些嵌入式开发时候，总会遇到一些问题，每家的硬件/设备都有自己的一套API，在学习测试这些API上都要花费较多时间，而且项目开发中总会有一些基础功能都要重新造一遍，这些功能并不难，但开发+测试总会占用较多的时间。因此我也经常在想，如果有一个好点的基础库，是不是可以省下更多的时间来研发更多有趣的应用。
+在嵌入式开发实践中，开发者常面临以下挑战：
+- 硬件/设备厂商提供的API存在显著风格差异（如接口命名规范、调用方式等），却实现相似功能，这种异构性导致开发者需要掌握多种实现方式，从而显著增加了学习曲线与测试验证成本。
+- 在嵌入式项目开发中，传感器接口、通信协议、基础算法等基础功能模块常需重复实现，虽然这些功能逻辑相对简单，但开发与测试环节平均会消耗项目20%-30%的工时，显著延长研发周期。
+- 缺乏标准化中间件阻碍创新效率，采用标准化中间件可使项目周期缩短，而节省的工时可直接转化为更有意义的创新。
 
-因此，我打算一边学习，一遍将学到的基本功能记录下来，过去7年，攒了一堆零散的功能，也都会集成在这里，希望能用几年的时间，打造一个大家都喜欢的库。项目OpenWanderary(缩写WDR)重点为以下几点，后面新增的功能都是围绕这几点展开：
+为此，OpenWanderary(缩写WDR)基于我个人过去多年的开发实践中的痛点积累，渐进式提供一系列开源中间件库，以缓解上述问题，打造一个大家都喜欢的库。OpenWanderary重点为以下几点，后面新增的功能都是围绕这几点展开：
 - **Open** Source。WDR中扩展的库都是完全开源的，提供足够的灵活性。
 - Integrate **Wander**ing Sensors/Device。集成多设备/多传感器的相关库，以及使用这些设备的相关算法。
-- Libr**ary**。WDR生成的是动态库，拿过来就直接使用。Examples和Projects给出了该库的各种示例/解决方案。
+- Libr**ary**。WDR生成的是动态库，拿过来就直接使用，并配套完整示例工程与解决方案。
 
-轮子造一次就足够了，无需重复构造。下面有一些设计规范：
-- **尽可能不构造新的数据类型**，降低学习成本。所用数据依赖常规库Eigen, OpenCV, PCL。新的数据类型就算构建，也是以降低使用成本为目的。
-- **不依赖硬件**。当前库以Linux为主，如果有些硬件并不需要，可通过配置CMAKE文件来决定是否编译。
-- **完全开源**。希望各位使用WDR时以动态链接方式使用，不要赋值其中的代码到自己的项目中。有优化项需求希望以pull requrest形式更新，欢迎各位贡献代码。
+轮子造一次就足够了，无需重复构造。下面有一些设计设计原则‌：
+- **数据类型最小化‌**: 尽可能不构造新的数据类型，降低学习成本。所用数据依赖Eigen/OpenCV/PCL等成熟库，仅当必要且能降低使用成本时引入新类型。
+- **硬件抽象层‌**。当前库以Linux为主，如果有些硬件并不需要，通过CMake配置实现平台无关性，按需编译。
+- **完全开源**。希望各位使用WDR时以动态链接方式使用，不要直接复制其中的代码到自己的项目中。有优化项需求希望以pull requrest形式更新，欢迎各位贡献代码。
 - **提供优质的开发API**。整体代码，以C++17为基础进行开发，开发过程中参考了《Effective C++》中的一些条款。这部分也是一边学习一边优化，优化代码规范，架构规范。
 
 
-# 代码编译
+# 一 代码编译
 
-由于py包安装在~/.local下面，因此需要先配置下环境变量。在`~/.bashrc`后面添加`export PATH=${HOME}/.local/bin:${PATH}`, 然后source一下。
+在开始前，请先关注。由于py包安装在~/.local下面，因此需要先配置下环境变量。在`~/.bashrc`后面添加`export PATH=${HOME}/.local/bin:${PATH}`, 然后source一下。
 
-下面开始编译代码
+在clone本仓库代码时，项目通过 Git 子模块（Submodules）的形式引入依赖的外部代码库，这些子模块作为独立的版本控制仓库被嵌套在主项目中，以便有效管理复杂项目的模块化依赖关系。为了帮助开发者更好地理解这些子模块的功能定位和使用场景，以下对各子模块进行详细介绍：
+- [`3rdparty/indicators`](https://github.com/p-ranav/indicators): 终端进度条库，用于可视化任务进度，辅助代码监控与调试。
+- [`3rdparty/mcap`](https://github.com/foxglove/mcap):一种用于多模态日志数据容器文件格式。它支持多个通道的带时间戳的预序列化数据，非常适合在发布/订阅或机器人应用中使用。
+- [`3rdparty/nlohmann_json`](https://github.com/nlohmann/json.git): C++ JSON处理库，提供轻量级JSON解析与生成能力。
+- [`3rdparty/pybind11`](https://github.com/pybind/pybind11.git)`&&`[`3rdparty/pybind11_json`](https://github.com/pybind/pybind11_json.git): C++/Python绑定库，实现C++代码到Python模块的封装。。
+- [`3rdparty/yaml-cpp`](https://github.com/jbeder/yaml-cpp.git): C++ YAML处理库，支持YAML数据的解析与生成。
+
+下面开始我们的源码编译与安装
+
+**Step1: 下载源码**。选择一个合适的目录作为下载路径，然后在终端中执行以下命令，注意`--recursive`参数会‌自动递归克隆所有子模块‌，**一定要确保子模块clone成功**。
 ```
 git clone --recursive https://github.com/Li-Zhaoxi/OpenWanderary.git
 cd OpenWanderary
-make download # 下载数据(UT依赖数据)
-make rely # 编译依赖项
-make debug # 编译debug版本,
-make release # 编译release版本
+```
+当网络环境受限或部分模块clone失败时，可采用分步克隆方式替代单次递归克隆。操作步骤如下：
+```
+git clone https://github.com/Li-Zhaoxi/OpenWanderary.git
+cd OpenWanderary
+git submodule update --init --recursive
+```
+
+**Step2: 下载依赖数据**。在项目根目录`OpenWanderary`下执行`make download`。OpenWanderary中包含一些依赖数据，在执行单元测试或功能用例时需要用到。
+
+download过程细节如下(`Makefile`)，从地瓜官网下载YOLOv8模型，相关文件保存在`tests/test_data/models`目录下。
+```
+download:
+	bash tests/test_data/models/download_models.sh; #
+```
+
+**Step3: 编译/安装依赖项**。在项目根目录`OpenWanderary`下执行`make rely`。
+- `requirements.txt`中定义了格式规范化以及pytest的依赖项。
+- `build_3rdpary.sh`先通过`sudo apt-get install`安装一些依赖包，然后编译安装前面所介绍的子模块。
+  - `git-lfs`: 用于开发者模式，代码仓中有些文件需要通过git-lfs下载/上传。
+  - `libcli11-dev`: C++11命令行解析库，用于解析命令行参数。
+
+```
+rely:
+	set -ex; \
+	pip3 install -r requirements.txt -i $(pip_source); \
+	pre-commit install; \
+	bash build_3rdpary.sh;
+```
+
+**Step4: OpenWanderary编译**。在项目根目录`OpenWanderary`下执行`make debug`或`make release`来编译Debug/Release版本的库。
+
+```
+debug:
+	cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug; \
+	make -j6 -C build/;
+
+release:
+	cmake -S . -B build_release -DCMAKE_BUILD_TYPE=Release; \
+	make -j6 -C build_release/;
+```
+
+**Step5: OpenWanderary安装**。参考下面代码可以将OpenWanderary安装到`/usr/local`目录下。
+- 头文件安装到`/usr/local/include/wanderary/`。
+- 库文件安装到`/usr/local/lib/`，相关库以libwdr_**.so命名。
+- cmake文件安装到`/usr/local/lib/cmake/wdr/`。
+
+```
+cd OpenWanderary;
+cd build_release;
+sudo make install;
+sudo ldconfig;
+```
+
+**Step6: OpenWanderary Python版本安装[可选]**。在步骤4编译完库之后(release为例)，Py包会生成在`build_release/dist`目录下，通过下述指令可完成py包的安装。注意，Py包本质是C++的封装，确保C++库已安装。
+```
+pip3 install build_release/dist/wanderary-0.1.0-py3-none-any.whl
+```
+
+# 二 个人项目嵌入
+
+这里介绍如何在您个人的CMake项目或者Python项目中使用OpenWanderary库，这里提供了一个完整的示例项目[OpenWanderary-examples](https://github.com/Li-Zhaoxi/OpenWanderary-examples)，该示例项目演示了如何在CMake项目中使用OpenWanderary库。
+
+下面是对项目集成的更加详细的说明。
+
+## 2.1 CMake项目配置方案
+
+调用wdr库时仅需要在自己的CMake项目中的CMakeLists.txt中添加如下配置即可，wdr依赖的库会自动被找到并链接。
+```
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(wdr REQUIRED)
+```
+
+wdr依赖库自动链接的原理是`/usr/local/lib/cmake/wdr/wdr-config.cmake`添加了依赖库的查找，感兴趣可以查看这里的代码。
+
+如果我们需要在自己项目中集成yolo算法并可视化，只需要在target_link_libraries中链接`wdr::wdr_visualization wdr::wdr_apps`即可，相关示例可参考: [examples/CMakeLists.txt](https://github.com/Li-Zhaoxi/OpenWanderary-examples/blob/main/examples/CMakeLists.txt)。
+
+## 2.2 Python项目配置方案
+
+在Python项目中使用wdr库，只需要在Python代码中添加如下代码即可，wdr依赖的库会自动被找到并链接。相关示例可参考：[python/yolo8_image.py](https://github.com/Li-Zhaoxi/OpenWanderary-examples/blob/main/python/yolo8_image.py)
+
+```
+import wanderary
 ```
 
 

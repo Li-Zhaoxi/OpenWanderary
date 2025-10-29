@@ -31,3 +31,9 @@ cd ${cur_dir}/3rdparty/indicators
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 make -j6 -C build/
 sudo make install -C build/
+
+# 安装MCap
+cd ${cur_dir}/3rdparty/mcap_builder
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+make -j6 -C build/
+sudo make install -C build/

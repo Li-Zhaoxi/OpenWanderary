@@ -16,3 +16,6 @@
 [submodule "3rdparty/mcap"]
 	path = 3rdparty/mcap
 	url = https://github.com/foxglove/mcap.git
+[submodule "3rdparty/waymo-open-dataset"]
+	path = 3rdparty/waymo-open-dataset
+	url = https://github.com/waymo-research/waymo-open-dataset.git

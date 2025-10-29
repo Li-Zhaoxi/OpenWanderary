@@ -24,10 +24,11 @@
 
 在clone本仓库代码时，项目通过 Git 子模块（Submodules）的形式引入依赖的外部代码库，这些子模块作为独立的版本控制仓库被嵌套在主项目中，以便有效管理复杂项目的模块化依赖关系。为了帮助开发者更好地理解这些子模块的功能定位和使用场景，以下对各子模块进行详细介绍：
 - [`3rdparty/indicators`](https://github.com/p-ranav/indicators): 终端进度条库，用于可视化任务进度，辅助代码监控与调试。
-- [`3rdparty/mcap`](https://github.com/foxglove/mcap):一种用于多模态日志数据容器文件格式。它支持多个通道的带时间戳的预序列化数据，非常适合在发布/订阅或机器人应用中使用。
+- [`3rdparty/mcap`](https://github.com/foxglove/mcap)`&& 3rdparty/mcap_builder`:一种用于多模态日志数据容器文件格式。它支持多个通道的带时间戳的预序列化数据，非常适合在发布/订阅或机器人应用中使用。mcap_builder用于将MCap头文件封装，以便通过find_package找到。
 - [`3rdparty/nlohmann_json`](https://github.com/nlohmann/json.git): C++ JSON处理库，提供轻量级JSON解析与生成能力。
 - [`3rdparty/pybind11`](https://github.com/pybind/pybind11.git)`&&`[`3rdparty/pybind11_json`](https://github.com/pybind/pybind11_json.git): C++/Python绑定库，实现C++代码到Python模块的封装。。
 - [`3rdparty/yaml-cpp`](https://github.com/jbeder/yaml-cpp.git): C++ YAML处理库，支持YAML数据的解析与生成。
+- [`3rdparty/waymo-open-dataset`](https://github.com/waymo-research/waymo-open-dataset.git): Waymo开源数据集，提供自动驾驶领域的数据集和工具，用于训练和评估自动驾驶算法。
 
 下面开始我们的源码编译与安装
 

@@ -10,4 +10,7 @@ std::string join(const std::string &path1, const std::string &name);
 std::string dirname(const std::string &filepath);
 std::string basename(const std::string &filepath);
 
+// 文件后缀名
+std::string extname(const std::string &filepath);
+
 }  // namespace wdr::path

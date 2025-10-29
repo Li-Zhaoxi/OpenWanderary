@@ -43,4 +43,8 @@ std::string basename(const std::string &filepath) {
   return fs::path(filepath).filename().string();
 }
 
+std::string extname(const std::string &filepath) {
+  return fs::path(filepath).extension().string();
+}
+
 }  // namespace wdr::path

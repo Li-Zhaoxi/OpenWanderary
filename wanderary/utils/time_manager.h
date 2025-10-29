@@ -61,4 +61,7 @@ class AutoScopeTimer {
 
 TimerManager& GlobalTimerManager();
 
+// 返回当前时刻的毫秒数
+int64_t CurrentMilliseconds();
+
 }  // namespace wdr

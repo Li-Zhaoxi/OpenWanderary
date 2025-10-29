@@ -2,6 +2,7 @@
 include_directories(
   ${CMAKE_SOURCE_DIR}/wanderary/
   ${CMAKE_SOURCE_DIR}/3rdparty/
+  ${CMAKE_CURRENT_BINARY_DIR}/schemas
 )
 
 
@@ -18,3 +19,5 @@ add_subdirectory(testing)
 add_subdirectory(python)
 add_subdirectory(visualization)
 add_subdirectory(apps)
+add_subdirectory(schemas)
+add_subdirectory(io)

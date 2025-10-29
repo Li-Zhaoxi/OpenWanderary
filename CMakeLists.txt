@@ -33,6 +33,8 @@ find_package(pybind11_json REQUIRED)
 find_package(TBB REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(indicators REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(mcap REQUIRED)
 message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
 
@@ -41,6 +43,7 @@ message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
 message(STATUS "OPENCV VERSION: ${OpenCV_VERSION}")
 
 include("${CMAKE_SOURCE_DIR}/cmake/pack_3rdparty.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/convert_protos.cmake")
 
 include_directories(
   ${EIGEN3_INCLUDE_DIRS}
@@ -77,6 +80,7 @@ install(
   TARGETS wdr_utils wdr_structs wdr_media wdr_dnn
           wdr_testing wdr_process wdr_data_loader
           wdr_visualization wdr_apps
+          wdr_proto_foxglove wdr_proto_waymo wdr_io
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib

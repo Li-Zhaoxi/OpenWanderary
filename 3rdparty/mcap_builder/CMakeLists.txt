@@ -15,12 +15,7 @@ set(MCAP_PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PRO
 
 include("${CMAKE_SOURCE_DIR}/cmake/pack_3rdparty.cmake")
 
-add_library(mcap INTERFACE)
-target_include_directories(mcap INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/../mcap/cpp/mcap/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(mcap INTERFACE LZ4::lz4 zstd::libzstd)
+add_subdirectory(src)
 
 
 include(CMakePackageConfigHelpers)

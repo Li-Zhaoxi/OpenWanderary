@@ -35,6 +35,9 @@ find_package(yaml-cpp REQUIRED)
 find_package(indicators REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(mcap REQUIRED)
+find_package(absl REQUIRED)
+find_package(ZLIB REQUIRED)
+
 message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
 message(STATUS "PyBind11 Dir: ${pybind11_DIR}")
 

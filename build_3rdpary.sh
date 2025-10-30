@@ -1,7 +1,7 @@
 cur_dir=$(pwd)
 
 #
-sudo apt-get install git-lfs libcli11-dev
+sudo apt-get install git-lfs libcli11-dev libabsl-dev
 git lfs install
 
 # 安装nlohmann_json

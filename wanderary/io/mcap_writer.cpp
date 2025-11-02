@@ -56,7 +56,7 @@ void MCAPWriter::WriteImage(const std::string& topic_name,
                             const std::string& image_path) {
   foxglove::CompressedImage msg;
   const int64_t cur_ts = wdr::CurrentMilliseconds();
-  wdr::msg::ConvertMsgImage(image_path, cur_ts, random_image_frame_id, &msg);
+  wdr::msg::ConvertImageToMsg(image_path, cur_ts, random_image_frame_id, &msg);
   this->write<foxglove::CompressedImage>(topic_name, msg, cur_ts * 1e6,
                                          cur_ts * 1e6, 0);
 }

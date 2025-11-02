@@ -9,17 +9,18 @@
 #include <opencv2/opencv.hpp>
 
 #include "wanderary/io/msg_convertor/protobuf.h"
+#include "wanderary/utils/file_io.h"
 #include "wanderary/utils/path.h"
 
 namespace wdr::msg {
 
-void ConvertMsgImage(const std::string &image_path, int64_t timestamp,
-                     const std::string &frame_id,
-                     foxglove::CompressedImage *msg) {
+void ConvertImageToMsg(const std::string &image_path, int64_t timestamp,
+                       const std::string &frame_id,
+                       foxglove::CompressedImage *msg) {
   CHECK(wdr::path::exist(image_path))
       << "Image file does not exist: " << image_path;
 
-  ConvertTimestampMsg(timestamp, msg->mutable_timestamp());
+  ConvertTimestampToMsg(timestamp, msg->mutable_timestamp());
   msg->set_frame_id(frame_id);
 
   const std::string ext = wdr::path::extname(image_path);
@@ -46,16 +47,34 @@ void ConvertMsgImage(const std::string &image_path, int64_t timestamp,
   if (need_read) {
     const cv::Mat img = cv::imread(image_path);
     cv::imencode(".png", img, buf);
-
   } else {
-    std::ifstream ifs(image_path, std::ios::binary);
-    ifs.seekg(0, std::ios::end);
-    const size_t size = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
-    buf.resize(size);
-    ifs.read(reinterpret_cast<char *>(buf.data()), size);
+    buf = wdr::ReadBytesFromFile<uchar>(image_path);
   }
   msg->set_data(buf.data(), buf.size());
+}
+
+int64_t ConvertImageFromMsg(const foxglove::CompressedImage &msg, bool decode,
+                            cv::Mat *image, std::string *format) {
+  const auto &fmt = msg.format();
+  if (format != nullptr) *format = fmt;
+
+  if (format == nullptr && decode == false)
+    LOG(FATAL) << "format is not specified and decode is false";
+
+  const auto &data = msg.data();
+  cv::Mat tmp(1, data.size(), CV_8UC1);
+  std::memcpy(tmp.data, data.data(), data.size());
+  if (decode) {
+    if (fmt == "png" || fmt == "jpeg") {
+      *image = cv::imdecode(tmp, cv::IMREAD_UNCHANGED);
+    } else {
+      LOG(FATAL) << "unsupported image format: " << fmt;
+    }
+  } else {
+    *image = tmp;
+  }
+
+  return ConvertTimestampFromMsg(msg.timestamp());
 }
 
 }  // namespace wdr::msg

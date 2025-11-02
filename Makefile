@@ -1,5 +1,9 @@
+.DEFAULT_GOAL := warn
 
 pip_source = https://pypi.tuna.tsinghua.edu.cn/simple
+
+warn:
+	@echo "Please run 'make <target>' to build the project."
 
 rely:
 	set -ex; \

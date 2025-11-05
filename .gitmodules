@@ -19,3 +19,6 @@
 [submodule "3rdparty/waymo-open-dataset"]
 	path = 3rdparty/waymo-open-dataset
 	url = https://github.com/waymo-research/waymo-open-dataset.git
+[submodule "3rdparty/absl"]
+	path = 3rdparty/absl
+	url = https://github.com/abseil/abseil-cpp.git

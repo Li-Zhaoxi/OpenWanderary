@@ -29,6 +29,7 @@
 - [`3rdparty/pybind11`](https://github.com/pybind/pybind11.git)`&&`[`3rdparty/pybind11_json`](https://github.com/pybind/pybind11_json.git): C++/Python绑定库，实现C++代码到Python模块的封装。。
 - [`3rdparty/yaml-cpp`](https://github.com/jbeder/yaml-cpp.git): C++ YAML处理库，支持YAML数据的解析与生成。
 - [`3rdparty/waymo-open-dataset`](https://github.com/waymo-research/waymo-open-dataset.git): Waymo开源数据集，提供自动驾驶领域的数据集和工具，用于训练和评估自动驾驶算法。
+- [`3rdparty/absl`](https://github.com/abseil/abseil-cpp.git): Google的C++通用库，提供各种实用工具和功能，如字符串处理、容器、算法、并发等。在当前项目中。在当前项目中用于计算CRC32校验码，以便加载tfrecord文件。
 
 下面开始我们的源码编译与安装
 

@@ -3,10 +3,17 @@
 function(wdr_proto_library)
   set(oneValueArgs NAME INPUT_DIR OUTPUT_DIR)
 
-  set(multiValueArgs FILES)
+  set(multiValueArgs FOLDERS)
   cmake_parse_arguments(PROTO_LIB "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  file(GLOB_RECURSE ALL_PROTOS "${PROTO_LIB_INPUT_DIR}/*.proto")
+  if (NOT PROTO_LIB_FOLDERS)
+    file(GLOB_RECURSE ALL_PROTOS "${PROTO_LIB_INPUT_DIR}/*.proto")
+  else()
+    foreach(f ${PROTO_LIB_FOLDERS})
+      file(GLOB_RECURSE FOLDER_PROTOS "${PROTO_LIB_INPUT_DIR}/${f}/*.proto")
+      list(APPEND ALL_PROTOS ${FOLDER_PROTOS})
+    endforeach()
+  endif()
 
   foreach(f ${ALL_PROTOS})
     file(RELATIVE_PATH f ${PROTO_LIB_INPUT_DIR} ${f})

@@ -83,7 +83,8 @@ install(
   TARGETS wdr_utils wdr_structs wdr_media wdr_dnn
           wdr_testing wdr_process wdr_data_loader
           wdr_visualization wdr_apps
-          wdr_proto_foxglove wdr_proto_waymo wdr_io
+          wdr_proto_foxglove wdr_proto_waymo wdr_proto_tf
+          wdr_io
   EXPORT wdr-targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib

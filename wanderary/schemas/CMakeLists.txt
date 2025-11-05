@@ -14,3 +14,12 @@ wdr_proto_library(
   INPUT_DIR ${WAYMO_INPUT_DIR}
   OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/
 )
+
+# 转换tensorfow的proto文件
+# file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tensorflow)
+wdr_proto_library(
+  NAME wdr_proto_tf
+  INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  FOLDERS tensorflow
+)

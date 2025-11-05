@@ -1,7 +1,7 @@
 cur_dir=$(pwd)
 
 #
-sudo apt-get install git-lfs libcli11-dev libabsl-dev
+sudo apt-get install git-lfs libcli11-dev
 git lfs install
 
 # 安装nlohmann_json
@@ -35,5 +35,11 @@ sudo make install -C build/
 # 安装MCap
 cd ${cur_dir}/3rdparty/mcap_builder
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+make -j6 -C build/
+sudo make install -C build/
+
+# 安装absl
+cd ${cur_dir}/3rdparty/absl
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
 make -j6 -C build/
 sudo make install -C build/

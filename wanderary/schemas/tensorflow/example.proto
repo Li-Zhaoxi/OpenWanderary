@@ -1,0 +1,15 @@
+
+syntax = "proto3";
+
+import "tensorflow/feature.proto";
+
+package tensorflow;
+
+message Example {
+  Features features = 1;
+};
+
+message SequenceExample {
+  Features context = 1;
+  FeatureLists feature_lists = 2;
+};

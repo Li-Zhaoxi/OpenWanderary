@@ -130,7 +130,7 @@ void ConvertYoloFeature::Forward2D(const std::vector<cv::Mat> &feats,
       tmp.y_min = (box2d.y - affine->y_shift) / affine->y_scale;
       tmp.w = box2d.width / affine->x_scale;
       tmp.h = box2d.height / affine->y_scale;
-      tmp.label_id = idx;
+      tmp.label.id = idx;
 
       box2ds->push_back(std::move(tmp));
     }

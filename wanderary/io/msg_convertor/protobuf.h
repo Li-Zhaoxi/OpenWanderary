@@ -1,3 +1,4 @@
+#pragma once
 #include <google/protobuf/timestamp.pb.h>
 
 namespace wdr::msg {

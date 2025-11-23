@@ -139,7 +139,7 @@ void process_yolov8_dataset(const std::string &config_path,
 
     // 获取输入
     cv::Mat img;
-    frame.meta.image_file->data->copyTo(img);
+    frame.meta.image_file->data->data.copyTo(img);
     const auto &file_path = frame.meta.image_file->rawpath;
 
     time_manager.start("full-pipeline");
@@ -153,7 +153,7 @@ void process_yolov8_dataset(const std::string &config_path,
     // 可视化
     if (drawer) {
       cv::Mat vis;
-      frame.meta.image_file->data->copyTo(vis);
+      frame.meta.image_file->data->data.copyTo(vis);
       drawer->draw(box2ds, &vis);
       const std::string savepath =
           wdr::path::join(saveroot, wdr::path::basename(file_path));

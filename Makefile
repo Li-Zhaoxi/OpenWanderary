@@ -9,7 +9,9 @@ rely:
 	set -ex; \
 	pip3 install -r requirements.txt -i $(pip_source); \
 	pre-commit install; \
-	bash build_3rdpary.sh;
+	bash build_3rdpary.sh; \
+	git lfs fetch --all; \
+	git lfs pull;
 
 download:
 	bash tests/test_data/models/download_models.sh;

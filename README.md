@@ -57,6 +57,7 @@ download:
 - `build_3rdpary.sh`先通过`sudo apt-get install`安装一些依赖包，然后编译安装前面所介绍的子模块。
   - `git-lfs`: 用于开发者模式，代码仓中有些文件需要通过git-lfs下载/上传。
   - `libcli11-dev`: C++11命令行解析库，用于解析命令行参数。
+- `git lfs fetch --all && git lfs pull`: 用于同步大文件的两个关键命令组合，常用于确保本地仓库完整获取所有大文件的二进制内容。
 
 ```
 rely:
@@ -76,6 +77,15 @@ debug:
 release:
 	cmake -S . -B build_release -DCMAKE_BUILD_TYPE=Release; \
 	make -j6 -C build_release/;
+```
+
+注：代码编译大概消耗4-5G左右的内存，建议编译时启用虚拟内存，具体开启方式如下.
+```
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+# 启动虚拟内存，若htop指令显示没有虚拟内存时, 可执行该代码
+sudo swapon /swapfile
 ```
 
 **Step5: OpenWanderary安装**。参考下面代码可以将OpenWanderary安装到`/usr/local`目录下。

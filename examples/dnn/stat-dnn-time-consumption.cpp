@@ -176,6 +176,7 @@ void process_yolov8_image(const std::string &config_path,
   CropInfo crop_info(wdr::GetData<wdr::json>(total_inputs, "crop_info"));
   YOLOv8 yolov8("yolov8", total_config, thread_num);
   const cv::Mat img = cv::imread(image_path, cv::IMREAD_COLOR);
+  CHECK(!img.empty()) << "Failed to load image: " << image_path;
 
   // 初始化可视化
   std::unique_ptr<Box2DDrawer> drawer =

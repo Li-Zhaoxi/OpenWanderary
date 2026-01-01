@@ -37,6 +37,9 @@ void Check(const wdr::json &pred, const wdr::json &gt, double eps,
 void Check(const std::vector<cv::Rect> &pred, const std::vector<cv::Rect> &gt,
            const std::string &msg = "");
 
+void Check(const AnnoMeta &pred, const AnnoMeta &gt,
+           const std::string &msg = "");
+
 }  // namespace wdr::testing
 
 #include <wanderary/testing/impl/data_checking.hpp>

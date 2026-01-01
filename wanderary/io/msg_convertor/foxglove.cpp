@@ -53,6 +53,34 @@ void ConvertImageToMsg(const std::string &image_path, int64_t timestamp,
   msg->set_data(buf.data(), buf.size());
 }
 
+void ConvertImageToMsg(const ImageData &image_data, int64_t timestamp,
+                       const std::string &frame_id,
+                       foxglove::CompressedImage *msg) {
+  ConvertTimestampToMsg(timestamp, msg->mutable_timestamp());
+  msg->set_frame_id(frame_id);
+
+  std::vector<uchar> buf;
+  switch (image_data.type) {
+    case ImageDataType::kRaw: {
+      msg->set_format("raw");
+      cv::imencode(".png", image_data.data, buf);
+      break;
+    }
+    case ImageDataType::kJpeg: {
+      msg->set_format("jpeg");
+      buf.resize(image_data.data.cols);
+      memcpy(buf.data(), image_data.data.data, image_data.data.cols);
+      break;
+    }
+    default: {
+      LOG(FATAL) << "Unsupported image data type: "
+                 << ImageDataType2str(image_data.type);
+      break;
+    }
+  }
+  msg->set_data(buf.data(), buf.size());
+}
+
 int64_t ConvertImageFromMsg(const foxglove::CompressedImage &msg, bool decode,
                             cv::Mat *image, std::string *format) {
   const auto &fmt = msg.format();

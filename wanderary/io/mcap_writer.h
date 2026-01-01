@@ -2,9 +2,11 @@
 #include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/descriptor.pb.h>
+#include <wanderary/structs/frame.h>
 
 #include <mcap/writer.hpp>
 
@@ -34,6 +36,13 @@ class MCAPWriter {
 
   // 写入图像
   void WriteImage(const std::string& topic_name, const std::string& image_path);
+  // 写入ImageFrame里有的图像数据
+  bool WriteImage(const std::string& topic_name, const ImageFrame& frame);
+
+  // 写入Waymo数据集
+  void WriteWaymoFrame(const std::string& topic_name,
+                       const std::vector<uint8_t>& bytes, uint32_t sequence = 0,
+                       MultiModalFrame* mmframe = nullptr);
 
  private:
   static google::protobuf::FileDescriptorSet BuildFileDescriptorSet(

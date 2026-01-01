@@ -5,9 +5,15 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "wanderary/structs/frame.h"
+
 namespace wdr::msg {
 
 void ConvertImageToMsg(const std::string &image_path, int64_t timestamp,
+                       const std::string &frame_id,
+                       foxglove::CompressedImage *msg);
+
+void ConvertImageToMsg(const ImageData &image_data, int64_t timestamp,
                        const std::string &frame_id,
                        foxglove::CompressedImage *msg);
 

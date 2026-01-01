@@ -3,8 +3,10 @@
 #include <queue>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "wanderary/io/msg_convertor/foxglove.h"
+#include "wanderary/io/msg_convertor/open_waymo_dataset.h"
 #include "wanderary/utils/time_manager.h"
 
 namespace wdr::io {
@@ -59,6 +61,42 @@ void MCAPWriter::WriteImage(const std::string& topic_name,
   wdr::msg::ConvertImageToMsg(image_path, cur_ts, random_image_frame_id, &msg);
   this->write<foxglove::CompressedImage>(topic_name, msg, cur_ts * 1e6,
                                          cur_ts * 1e6, 0);
+}
+
+bool MCAPWriter::WriteImage(const std::string& topic_name,
+                            const ImageFrame& frame) {
+  foxglove::CompressedImage msg;
+  const int64_t cur_ts = frame.start_timestamp;
+  if (!frame.meta.image_file.has_value()) return false;
+  const auto& image_file = frame.meta.image_file.value();
+  const std::string frame_id = SensorNameID2str(frame.sensor_name_id);
+  if (image_file.rawpath.empty()) {
+    if (image_file.data == nullptr) return false;
+    wdr::msg::ConvertImageToMsg(*image_file.data, cur_ts, frame_id, &msg);
+  } else {
+    wdr::msg::ConvertImageToMsg(image_file.rawpath, cur_ts, frame_id, &msg);
+  }
+
+  return true;
+}
+
+void MCAPWriter::WriteWaymoFrame(const std::string& topic_name,
+                                 const std::vector<uint8_t>& bytes,
+                                 uint32_t sequence, MultiModalFrame* mmframe) {
+  waymo::open_dataset::Frame frame;
+  CHECK(frame.ParseFromArray(bytes.data(), bytes.size()))
+      << "failed to parse tfrecord data block into a Frame";
+
+  if (!topic_name.empty()) {
+    // 如果Topic不为空, 写入原始数据
+    const int64_t cur_ts = frame.timestamp_micros();
+    this->write<waymo::open_dataset::Frame>(topic_name, frame, cur_ts * 1e3,
+                                            cur_ts * 1e3, 0);
+  }
+
+  if (mmframe) {
+    wdr::msg::ConvertWaymoFrameMsgToMMFrame(frame, mmframe);
+  }
 }
 
 }  // namespace wdr::io

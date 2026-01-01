@@ -102,7 +102,7 @@ void Check(const wdr::Box2D &pred, const wdr::Box2D &gt, double eps,
   EXPECT_NEAR(pred.y_min, gt.y_min, eps) << msg;
   EXPECT_NEAR(pred.w, gt.w, eps) << msg;
   EXPECT_NEAR(pred.h, gt.h, eps) << msg;
-  EXPECT_EQ(pred.label_id, gt.label_id) << msg;
+  EXPECT_EQ(pred.label.id, gt.label.id) << msg;
 }
 
 void UnorderedCheck(const std::vector<wdr::Box2D> &pred,
@@ -188,6 +188,14 @@ void Check(const std::vector<cv::Rect> &pred, const std::vector<cv::Rect> &gt,
     EXPECT_EQ(roi_pred.width, roi_gt.width) << submsg;
     EXPECT_EQ(roi_pred.height, roi_gt.height) << submsg;
   }
+}
+
+void Check(const AnnoMeta &pred, const AnnoMeta &gt, const std::string &msg) {
+  EXPECT_EQ(pred.id, gt.id) << msg;
+  EXPECT_TRUE(pred.detection_difficulty_level == gt.detection_difficulty_level)
+      << msg;
+  EXPECT_TRUE(pred.tracking_difficulty_level == gt.tracking_difficulty_level)
+      << msg;
 }
 
 }  // namespace wdr::testing

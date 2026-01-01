@@ -1,7 +1,14 @@
 #include "wanderary/python/wdr.h"
 #include "wanderary/structs/box.h"
+#include "wanderary/structs/frame.h"
 
 using Box2D = wdr::Box2D;
+using BaseFrame = wdr::BaseFrame;
+using MultiModalFrame = wdr::MultiModalFrame;
+
+void BindStructEnums(py::module *m) {
+  BIND_ENUM(SensorNameID, "SensorNameID", m);
+}
 
 void BindBox2DLabel(py::module *m) {
   py::class_<Box2D::Label> label_class(*m, "Label2D");
@@ -30,7 +37,23 @@ void BindBox2D(py::module *m) {
                   [](const Box2D &box, py::dict) { return box; });
 }
 
+void BindBaseFrame(py::module *m) {
+  py::class_<BaseFrame> frame_class(*m, "BaseFrame");
+  frame_class.def(py::init<>());
+  frame_class.def_readwrite("sensor_name_id", &BaseFrame::sensor_name_id);
+  frame_class.def_readwrite("start_timestamp", &BaseFrame::start_timestamp);
+  frame_class.def_readwrite("stop_timestamp", &BaseFrame::stop_timestamp);
+}
+
+void BindMultiModalFrame(py::module *m) {
+  py::class_<MultiModalFrame> frame_class(*m, "MultiModalFrame");
+  frame_class.def(py::init<>());
+}
+
 void BindStructs(py::module *m) {
+  BindStructEnums(m);
   BindBox2DLabel(m);
   BindBox2D(m);
+  BindBaseFrame(m);
+  BindMultiModalFrame(m);
 }

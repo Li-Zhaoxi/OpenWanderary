@@ -5,10 +5,18 @@
 #include <pybind11/options.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <wanderary/utils/enum_traits.h>
 
 #include <opencv2/opencv.hpp>
 
 #include <pybind11_json/pybind11_json.hpp>
+
+#define BIND_ENUM(ENUM_TYPE, ENUM_NAME, MODULE_PTR)                           \
+  {                                                                           \
+    py::enum_<ENUM_TYPE> enum_type(*MODULE_PTR, ENUM_NAME, py::arithmetic()); \
+    for (const auto &[val, strval] : VAR_NAME_TYPE2STRVAR(ENUM_TYPE))         \
+      enum_type.value(strval.c_str(), val);                                   \
+  }
 
 namespace py = pybind11;
 
@@ -32,6 +40,7 @@ void BindDNN(py::module *m);
 void BindStructs(py::module *m);
 void BindTesting(py::module *m);
 void BindVisualization(py::module *m);
+void BindIO(py::module *m);
 void BindApps(py::module *m);
 
 #include <wanderary/python/impl/wdr.hpp>

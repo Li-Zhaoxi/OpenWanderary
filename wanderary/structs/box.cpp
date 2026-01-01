@@ -71,7 +71,7 @@ Box2D Box2D::load(const wdr::json& data) {
   res.h = wdr::GetData<double>(data, "h");
   res.label = Box2D::Label::load(wdr::GetData<wdr::json>(data, "label"));
 
-  wdr::json meta = wdr::GetData<wdr::json>(data, "meta");
+  wdr::json meta = wdr::GetData<wdr::json>(data, "meta", wdr::json());
   for (const auto& [k, v] : meta.items()) {
     if (k == "anno_meta") res.meta.anno_meta = AnnoMeta::load(v);
   }

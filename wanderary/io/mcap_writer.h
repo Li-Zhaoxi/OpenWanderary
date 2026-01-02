@@ -35,9 +35,11 @@ class MCAPWriter {
   void close();
 
   // 写入图像
-  void WriteImage(const std::string& topic_name, const std::string& image_path);
+  void WriteImage(const std::string& topic_name, const std::string& image_path,
+                  uint32_t sequence = 0);
   // 写入ImageFrame里有的图像数据
-  bool WriteImage(const std::string& topic_name, const ImageFrame& frame);
+  bool WriteImage(const std::string& topic_name, const ImageFrame& frame,
+                  uint32_t sequence = 0);
 
   // 写入Waymo数据集
   void WriteWaymoFrame(const std::string& topic_name,

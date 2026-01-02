@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 
 #include "wanderary/io/msg_convertor/foxglove.h"
+#include "wanderary/io/msg_convertor/open_waymo_dataset.h"
 
 namespace wdr::io {
 
@@ -47,11 +48,12 @@ int MCAPReader::size(const std::string &topic) const {
   return this->channel_times_.at(topic).size();
 }
 
-int64_t MCAPReader::ReadImage(const std::string &topic, int index,
-                              cv::Mat *data, bool decode) {
+mcap::ReadMessageOptions MCAPReader::ConstructReadMessageOptions(
+    const std::string &topic, int index) const {
   const auto iter = this->channel_times_.find(topic);
   CHECK(iter != this->channel_times_.end())
       << "Topic " << topic << " not found";
+  CHECK(index >= 0 && index < iter->second.size());
   const int64_t dst_time = iter->second[index];
 
   mcap::ReadMessageOptions opt;
@@ -60,6 +62,12 @@ int64_t MCAPReader::ReadImage(const std::string &topic, int index,
   opt.topicFilter = [&topic](std::string_view tp) -> bool {
     return tp == topic;
   };
+  return opt;
+}
+
+int64_t MCAPReader::ReadImage(const std::string &topic, int index,
+                              cv::Mat *data, bool decode) {
+  const auto opt = this->ConstructReadMessageOptions(topic, index);
 
   int64_t ts = -1;
   auto messageView = reader_.readMessages([](const mcap::Status &) {}, opt);
@@ -75,7 +83,31 @@ int64_t MCAPReader::ReadImage(const std::string &topic, int index,
     break;
   }
 
+  CHECK_GE(ts, 0);
+
   return ts;
+}
+
+void MCAPReader::ReadMultiModalFrameFromWaymo(const std::string &topic,
+                                              int index,
+                                              MultiModalFrame *mmframe) {
+  const auto opt = this->ConstructReadMessageOptions(topic, index);
+
+  bool found = false;
+  auto messageView = reader_.readMessages([](const mcap::Status &) {}, opt);
+  for (auto it = messageView.begin(); it != messageView.end(); it++) {
+    CHECK_EQ(it->schema->name, "waymo.open_dataset.Frame");
+
+    waymo::open_dataset::Frame msg;
+    CHECK(msg.ParseFromArray(it->message.data,
+                             static_cast<int>(it->message.dataSize)));
+
+    wdr::msg::ConvertWaymoFrameMsgToMMFrame(msg, mmframe);
+    found = true;
+    break;
+  }
+
+  CHECK(found);
 }
 
 }  // namespace wdr::io

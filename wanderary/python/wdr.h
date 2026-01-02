@@ -16,6 +16,15 @@
     py::enum_<ENUM_TYPE> enum_type(*MODULE_PTR, ENUM_NAME, py::arithmetic()); \
     for (const auto &[val, strval] : VAR_NAME_TYPE2STRVAR(ENUM_TYPE))         \
       enum_type.value(strval.c_str(), val);                                   \
+    MODULE_PTR->def(BOOST_PP_STRINGIZE(FUN_NAME_STRING2TYPE(ENUM_TYPE)),      \
+                                       &FUN_NAME_STRING2TYPE(ENUM_TYPE),      \
+                                       py::arg("val"));                       \
+    MODULE_PTR->def(BOOST_PP_STRINGIZE(FUN_NAME_TYPE2STRING(ENUM_TYPE)),      \
+                                       &FUN_NAME_TYPE2STRING(ENUM_TYPE),      \
+                                       py::arg("val"));                       \
+    MODULE_PTR->def(BOOST_PP_STRINGIZE(FUN_NAME_INT2TYPE(ENUM_TYPE)),         \
+                                       &FUN_NAME_INT2TYPE(ENUM_TYPE),         \
+                                       py::arg("val"));                       \
   }
 
 namespace py = pybind11;

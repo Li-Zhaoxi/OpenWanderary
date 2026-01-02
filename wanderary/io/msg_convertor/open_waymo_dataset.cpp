@@ -68,8 +68,10 @@ void ConvertCameraImageMsgToFrame(const waymo::open_dataset::CameraImage &frame,
 
   // 拷贝其他数据
   frame2d->sensor_name_id = ConvertCameraNameToWdrID(frame.name());
-  frame2d->start_timestamp = frame.camera_trigger_time();
-  frame2d->stop_timestamp = frame.camera_trigger_time();
+  frame2d->start_timestamp =
+      static_cast<uint64_t>(frame.camera_trigger_time() * 1e3 + 0.5);
+  frame2d->stop_timestamp =
+      static_cast<uint64_t>(frame.camera_trigger_time() * 1e3 + 0.5);
 }
 
 void ConvertLabelBoxMsgToBox2D(const waymo::open_dataset::Label::Box &msg,

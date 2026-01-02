@@ -3,6 +3,7 @@
 #include "wanderary/io/mcap_writer.h"
 #include "wanderary/python/wdr.h"
 using MCAPWriter = wdr::io::MCAPWriter;
+using ImageFrame = wdr::ImageFrame;
 
 void BindMCapCompression(py::module *m) {
   py::enum_<mcap::Compression> enum_type(*m, "MCAPCompression",
@@ -20,6 +21,16 @@ void BindMCapWriter(py::module *m) {
       py::arg("compression") = mcap::Compression::Zstd,
       py::arg("enable_crcs") = true);
   mcap_class.def("close", &MCAPWriter::close);
+  mcap_class.def(
+      "WriteImage",
+      py::overload_cast<const std::string &, const std::string &, uint32_t>(
+          &MCAPWriter::WriteImage),
+      py::arg("topic_name"), py::arg("image_path"), py::arg("sequence") = 0);
+  mcap_class.def(
+      "WriteImage",
+      py::overload_cast<const std::string &, const ImageFrame &, uint32_t>(
+          &MCAPWriter::WriteImage),
+      py::arg("topic_name"), py::arg("frame"), py::arg("sequence") = 0);
   mcap_class.def("WriteWaymoFrame", &MCAPWriter::WriteWaymoFrame,
                  py::arg("topic_name"), py::arg("bytes"),
                  py::arg("sequence") = 0, py::arg("mmframe") = nullptr);

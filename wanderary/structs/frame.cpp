@@ -1,5 +1,6 @@
 #include "wanderary/structs/frame.h"
 
+#include <map>
 #include <utility>
 
 #include "wanderary/utils/common_utils.h"
@@ -21,7 +22,7 @@ Frame Frame::clone() const {
 
 void MultiModalFrame::add(ImageFrame &&frame) {
   CHECK(SensorUtils::is_camera(frame.sensor_name_id));
-  CHECK(wdr::contains(camera_frames_, frame.sensor_name_id));
+  CHECK(!wdr::contains(camera_frames_, frame.sensor_name_id));
   camera_frames_[frame.sensor_name_id] = std::move(frame);
 }
 
@@ -31,6 +32,14 @@ MultiModalFrame::mutable_camera_frame(SensorNameID name_id) {
     return std::ref(camera_frames_[name_id]);
   }
   return std::nullopt;
+}
+
+std::map<SensorNameID, std::reference_wrapper<const ImageFrame>>
+MultiModalFrame::camera_frames() const {
+  std::map<SensorNameID, std::reference_wrapper<const ImageFrame>> frames;
+  for (const auto &frame : camera_frames_)
+    frames.insert(std::make_pair(frame.first, std::cref(frame.second)));
+  return frames;
 }
 
 }  // namespace wdr

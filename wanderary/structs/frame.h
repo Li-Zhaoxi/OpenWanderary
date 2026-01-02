@@ -70,9 +70,8 @@ class MultiModalFrame {
   void add(ImageFrame&& frame);
   std::optional<std::reference_wrapper<ImageFrame>> mutable_camera_frame(
       SensorNameID name_id);
-  const std::map<SensorNameID, ImageFrame>& camera_frames() const {
-    return camera_frames_;
-  }
+  std::map<SensorNameID, std::reference_wrapper<const ImageFrame>>
+  camera_frames() const;
 
  private:
   std::map<SensorNameID, ImageFrame> camera_frames_;  // 图像帧

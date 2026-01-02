@@ -4,6 +4,7 @@
 
 using Box2D = wdr::Box2D;
 using BaseFrame = wdr::BaseFrame;
+using ImageFrame = wdr::ImageFrame;
 using MultiModalFrame = wdr::MultiModalFrame;
 
 void BindStructEnums(py::module *m) {
@@ -45,9 +46,15 @@ void BindBaseFrame(py::module *m) {
   frame_class.def_readwrite("stop_timestamp", &BaseFrame::stop_timestamp);
 }
 
+void BindImageFrame(py::module *m) {
+  py::class_<ImageFrame, BaseFrame> frame_class(*m, "ImageFrame");
+  frame_class.def(py::init<>());
+}
+
 void BindMultiModalFrame(py::module *m) {
   py::class_<MultiModalFrame> frame_class(*m, "MultiModalFrame");
   frame_class.def(py::init<>());
+  frame_class.def("camera_frames", &MultiModalFrame::camera_frames);
 }
 
 void BindStructs(py::module *m) {
@@ -55,5 +62,6 @@ void BindStructs(py::module *m) {
   BindBox2DLabel(m);
   BindBox2D(m);
   BindBaseFrame(m);
+  BindImageFrame(m);
   BindMultiModalFrame(m);
 }

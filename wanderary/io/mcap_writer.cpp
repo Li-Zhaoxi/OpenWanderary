@@ -55,16 +55,16 @@ MCAPWriter::~MCAPWriter() {
 }
 
 void MCAPWriter::WriteImage(const std::string& topic_name,
-                            const std::string& image_path) {
+                            const std::string& image_path, uint32_t sequence) {
   foxglove::CompressedImage msg;
   const int64_t cur_ts = wdr::CurrentMilliseconds();
   wdr::msg::ConvertImageToMsg(image_path, cur_ts, random_image_frame_id, &msg);
   this->write<foxglove::CompressedImage>(topic_name, msg, cur_ts * 1e6,
-                                         cur_ts * 1e6, 0);
+                                         cur_ts * 1e6, sequence);
 }
 
 bool MCAPWriter::WriteImage(const std::string& topic_name,
-                            const ImageFrame& frame) {
+                            const ImageFrame& frame, uint32_t sequence) {
   foxglove::CompressedImage msg;
   const int64_t cur_ts = frame.start_timestamp;
   if (!frame.meta.image_file.has_value()) return false;
@@ -76,6 +76,9 @@ bool MCAPWriter::WriteImage(const std::string& topic_name,
   } else {
     wdr::msg::ConvertImageToMsg(image_file.rawpath, cur_ts, frame_id, &msg);
   }
+
+  this->write<foxglove::CompressedImage>(topic_name, msg, cur_ts * 1e6,
+                                         cur_ts * 1e6, sequence);
 
   return true;
 }
@@ -91,7 +94,7 @@ void MCAPWriter::WriteWaymoFrame(const std::string& topic_name,
     // 如果Topic不为空, 写入原始数据
     const int64_t cur_ts = frame.timestamp_micros();
     this->write<waymo::open_dataset::Frame>(topic_name, frame, cur_ts * 1e3,
-                                            cur_ts * 1e3, 0);
+                                            cur_ts * 1e3, sequence);
   }
 
   if (mmframe) {

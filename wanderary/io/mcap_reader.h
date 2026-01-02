@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <wanderary/structs/frame.h>
+
 #include <opencv2/opencv.hpp>
 
 #include <mcap/reader.hpp>
@@ -21,7 +23,12 @@ class MCAPReader {
   int64_t ReadImage(const std::string &topic, int index, cv::Mat *data,
                     bool decode);
 
+  void ReadMultiModalFrameFromWaymo(const std::string &topic, int index,
+                                    MultiModalFrame *mmframe);
+
  private:
+  mcap::ReadMessageOptions ConstructReadMessageOptions(const std::string &topic,
+                                                       int index) const;
   bool is_open_{false};
   mcap::McapReader reader_;
   std::map<std::string, std::vector<mcap::Timestamp>> channel_times_;

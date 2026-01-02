@@ -1,6 +1,6 @@
 
 # 转换foxglove的proto文件
-set(FOXGLOVE_INPUT_DIR "${CMAKE_SOURCE_DIR}/3rdparty/mcap/cpp/examples/protobuf/proto")
+set(FOXGLOVE_INPUT_DIR "${CMAKE_SOURCE_DIR}/3rdparty/foxglove-sdk/schemas/proto")
 wdr_proto_library(
   NAME wdr_proto_foxglove
   INPUT_DIR ${FOXGLOVE_INPUT_DIR}

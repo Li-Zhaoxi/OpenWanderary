@@ -22,3 +22,6 @@
 [submodule "3rdparty/absl"]
 	path = 3rdparty/absl
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "3rdparty/foxglove-sdk"]
+	path = 3rdparty/foxglove-sdk
+	url = https://github.com/foxglove/foxglove-sdk.git

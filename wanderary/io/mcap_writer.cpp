@@ -83,6 +83,15 @@ bool MCAPWriter::WriteImage(const std::string& topic_name,
   return true;
 }
 
+void MCAPWriter::WriteImageBox2Ds(const std::string& topic_name,
+                                  const ImageFrame& frame, uint32_t sequence) {
+  foxglove::ImageAnnotations msg;
+  const int64_t cur_ts = frame.start_timestamp;
+  wdr::msg::ConvertBoxes2DToMsg(cur_ts, frame.boxes, &msg);
+  this->write<foxglove::ImageAnnotations>(topic_name, msg, cur_ts * 1e6,
+                                          cur_ts * 1e6, sequence);
+}
+
 void MCAPWriter::WriteWaymoFrame(const std::string& topic_name,
                                  const std::vector<uint8_t>& bytes,
                                  uint32_t sequence, MultiModalFrame* mmframe) {

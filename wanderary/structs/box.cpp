@@ -2,6 +2,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <glog/logging.h>
 
@@ -80,5 +81,14 @@ Box2D Box2D::load(const wdr::json& data) {
 }
 
 cv::Rect Box2D::toCvRect() const { return cv::Rect(x_min, y_min, w, h); }
+
+std::vector<cv::Point2d> Box2D::CornerPoints() const {
+  std::vector<cv::Point2d> res;
+  res.push_back(cv::Point2d(x_min, y_min));
+  res.push_back(cv::Point2d(x_min + w, y_min));
+  res.push_back(cv::Point2d(x_min + w, y_min + h));
+  res.push_back(cv::Point2d(x_min, y_min + h));
+  return res;
+}
 
 }  // namespace wdr

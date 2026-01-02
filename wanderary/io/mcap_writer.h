@@ -41,6 +41,10 @@ class MCAPWriter {
   bool WriteImage(const std::string& topic_name, const ImageFrame& frame,
                   uint32_t sequence = 0);
 
+  // 写入ImageFrame中的Box2D
+  void WriteImageBox2Ds(const std::string& topic_name, const ImageFrame& frame,
+                        uint32_t sequence = 0);
+
   // 写入Waymo数据集
   void WriteWaymoFrame(const std::string& topic_name,
                        const std::vector<uint8_t>& bytes, uint32_t sequence = 0,

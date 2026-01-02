@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 #include <wanderary/utils/enum_traits.h>
 #include <wanderary/utils/json_utils.h>
@@ -50,6 +51,9 @@ struct Box2D {
   static Box2D load(const wdr::json& data);
 
   cv::Rect toCvRect() const;
+
+  // 从左上角开始顺时针获取四个角点
+  std::vector<cv::Point2d> CornerPoints() const;
 
   struct Attributes {
     std::optional<AnnoMeta> anno_meta{std::nullopt};

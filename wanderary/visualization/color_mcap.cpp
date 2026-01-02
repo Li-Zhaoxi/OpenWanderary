@@ -1,5 +1,6 @@
 #include "wanderary/visualization/color_mcap.h"
 
+#include <utility>
 #include <vector>
 
 #include <glog/logging.h>
@@ -27,6 +28,15 @@ std::vector<cv::Scalar> GetColorMap(int num_colors) {
   }
 
   return colors;
+}
+
+WaymoTypeColormap::WaymoTypeColormap() : IntegralColormap<int>() {
+  // vehicle: red
+  color_map_[1] = std::make_pair(cv::Scalar(0, 0, 255, 255), "veh");
+  // ped: green
+  color_map_[2] = std::make_pair(cv::Scalar(0, 255, 0, 255), "ped");
+  // cyclist: blue
+  color_map_[4] = std::make_pair(cv::Scalar(255, 0, 0, 255), "cyc");
 }
 
 }  // namespace wdr::vis

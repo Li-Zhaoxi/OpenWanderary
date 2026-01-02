@@ -31,6 +31,9 @@ void BindMCapWriter(py::module *m) {
       py::overload_cast<const std::string &, const ImageFrame &, uint32_t>(
           &MCAPWriter::WriteImage),
       py::arg("topic_name"), py::arg("frame"), py::arg("sequence") = 0);
+  mcap_class.def("WriteImageBox2Ds", &MCAPWriter::WriteImageBox2Ds,
+                 py::arg("topic_name"), py::arg("frame"),
+                 py::arg("sequence") = 0);
   mcap_class.def("WriteWaymoFrame", &MCAPWriter::WriteWaymoFrame,
                  py::arg("topic_name"), py::arg("bytes"),
                  py::arg("sequence") = 0, py::arg("mmframe") = nullptr);

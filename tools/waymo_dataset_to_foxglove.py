@@ -36,6 +36,7 @@ def main(*argv):
     # 定义topic
     topic_name_raw = "waymo_dataset/raw"
     topic_name_image = "waymo_dataset/image_"
+    topic_name_box2d = "waymo_dataset/box2d_"
 
     # 遍历每一帧数据
     seq_count = 0
@@ -43,16 +44,17 @@ def main(*argv):
         mmframe = MultiModalFrame()
 
         # 保存raw数据
-        logging.info(1)
         mcap_writer.WriteWaymoFrame(
           topic_name_raw if save_raw else "",
           bytearray(data.numpy()), seq_count, mmframe)
-        logging.info(2)
+
         # 保存图像
         for chl, frame in mmframe.camera_frames().items():
-            topic_name = topic_name_image + SensorNameID2str(chl)
-            mcap_writer.WriteImage(topic_name, frame, seq_count)
-            logging.info(3)
+            sensor_name = SensorNameID2str(chl)
+            mcap_writer.WriteImage(
+                topic_name_image + sensor_name, frame, seq_count)
+            mcap_writer.WriteImageBox2Ds(
+                topic_name_box2d + sensor_name, frame, seq_count)
 
         seq_count += 1
         break

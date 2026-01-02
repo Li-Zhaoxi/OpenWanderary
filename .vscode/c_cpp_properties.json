@@ -2,7 +2,7 @@
     "configurations": [
         {
             "name": "Linux",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "compileCommands": "${workspaceFolder}/build_release/compile_commands.json",
             "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],

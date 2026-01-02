@@ -23,7 +23,7 @@ Frame Frame::clone() const {
 void MultiModalFrame::add(ImageFrame &&frame) {
   CHECK(SensorUtils::is_camera(frame.sensor_name_id));
   CHECK(!wdr::contains(camera_frames_, frame.sensor_name_id));
-  camera_frames_[frame.sensor_name_id] = std::move(frame);
+  camera_frames_.insert(std::make_pair(frame.sensor_name_id, std::move(frame)));
 }
 
 std::optional<std::reference_wrapper<ImageFrame>>

@@ -55,17 +55,25 @@ void ConvertYoloFeature::Forward2D(const std::vector<cv::Mat> &feats,
   const auto &boxscales = cfg_.box_scales_;
   for (int i = 0; i < feat_num; i += 2) {
     const auto &feat = feats[i];
-    DCHECK(CheckFeatureDimValid(feat, {1, -1, -1, cfg_.class_num_},
-                                cv::DataType<float>::type))
-        << "Invalid feature. Idx: " << i
-        << ", feat info: " << LogFeatureDim(feat);
+    if (!CheckFeatureDimValid(feat, {1, -1, -1, cfg_.class_num_},
+                              cv::DataType<float>::type)) {
+      std::stringstream ss;
+      ss << "第" << i << "个特征图的信息(" << LogFeatureDim(feat)
+         << ")与期望的特征信息(dtype: " << cv::DataType<float>::type
+         << ", dims: 1,-1,-1," << cfg_.class_num_ << ")不匹配.";
+      LOG(FATAL) << ss.str();
+    }
   }
   for (int i = 1; i < feat_num; i += 2) {
     const auto &feat = feats[i];
-    DCHECK(CheckFeatureDimValid(feat, {1, -1, -1, cfg_.reg_num_ * 4},
-                                cv::DataType<int>::type))
-        << "Invalid feature. Idx: " << i
-        << ", feat info: " << LogFeatureDim(feat);
+    if (!CheckFeatureDimValid(feat, {1, -1, -1, cfg_.reg_num_ * 4},
+                              cv::DataType<float>::type)) {
+      std::stringstream ss;
+      ss << "第" << i << "个特征图的信息(" << LogFeatureDim(feat)
+         << ")与期望的特征信息(dtype: " << cv::DataType<float>::type
+         << ", dims: 1,-1,-1," << cfg_.reg_num_ * 4 << ")不匹配.";
+      LOG(FATAL) << ss.str();
+    }
     DCHECK(wdr::contains(descales.de_scales, i))
         << "Cannot find dequant scale for feature idx: " << i;
     DCHECK(wdr::contains(cfg_.box_scales_, i))

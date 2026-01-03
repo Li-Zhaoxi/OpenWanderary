@@ -60,4 +60,10 @@ setuptools.setup(
     packages=setuptools.find_packages("package"),
     python_requires='>=3.10, <3.11',
     include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "wdr-waymo-dataset-to-foxglove=tools/waymo_dataset_to_foxglove:main", # noqa
+            "wdr-construct-calibration-files=tools/construct_calibration_files:main", # noqa
+        ]
+    }
 )
